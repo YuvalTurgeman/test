@@ -1,0 +1,55 @@
+@model IEnumerable<test.Models.BookModel>
+
+<h1>Manage Books</h1>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>Title</th>
+        <th>Cover Image</th>
+        <th>Genre</th>
+        <th>Author</th>
+        <th>Publisher</th>
+        <th>Purchase Price</th>
+        <th>Borrow Price</th>
+        <th>Year Published</th>
+        <th>Age Limit</th>
+        <th>Formats</th>
+        <th>Is Buy Only</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var book in Model)
+    {
+    <tr>
+        <td>@book.Title</td>
+        <td>
+            @if (!string.IsNullOrEmpty(book.CoverImage))
+            {
+            <img src="@book.CoverImage" alt="@book.Title Cover" style="width: 50px; height: auto;" />
+            }
+            else
+            {
+            <span>No Image</span>
+            }
+        </td>
+        <td>@book.Genre</td>
+        <td>@book.Author</td>
+        <td>@book.Publisher</td>
+        <td>@book.PurchasePrice?.ToString("C") ?? "N/A"</td>
+        <td>@book.BorrowPrice?.ToString("C") ?? "N/A"</td>
+        <td>@book.YearPublished?.ToString() ?? "N/A"</td>
+        <td>@book.AgeLimit ?? "N/A"</td>
+        <td>@book.Formats ?? "N/A"</td>
+        <td>@(book.IsBuyOnly ? "Yes" : "No")</td>
+        <td>
+            <a href="@Url.Action("Edit", "Books", new { id = book.Id })" class="btn btn-primary">Edit</a>
+            <a href="@Url.Action("Delete", "Books", new { id = book.Id })" class="btn btn-danger">Delete</a>
+        </td>
+    </tr>
+    }
+    </tbody>
+</table>
+
+<a href="@Url.Action("Create", "Books")" class="btn btn-success">Add New Book</a>

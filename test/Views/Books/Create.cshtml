@@ -1,0 +1,51 @@
+@model test.Models.BookModel
+
+<h1>Create New Book</h1>
+
+<form asp-action="Create" method="post">
+    <div class="form-group">
+        <label for="Title">Title</label>
+        <input type="text" class="form-control" id="Title" name="Title" required />
+    </div>
+    <div class="form-group">
+        <label for="CoverImage">Cover Image (URL)</label>
+        <input type="text" class="form-control" id="CoverImage" name="CoverImage" />
+    </div>
+    <div class="form-group">
+        <label for="Genre">Genre</label>
+        <input type="text" class="form-control" id="Genre" name="Genre" />
+    </div>
+    <div class="form-group">
+        <label for="Author">Author</label>
+        <input type="text" class="form-control" id="Author" name="Author" required />
+    </div>
+    <div class="form-group">
+        <label for="Publisher">Publisher</label>
+        <input type="text" class="form-control" id="Publisher" name="Publisher" />
+    </div>
+    <div class="form-group">
+        <label for="PurchasePrice">Purchase Price</label>
+        <input type="number" class="form-control" id="PurchasePrice" name="PurchasePrice" step="0.01" />
+    </div>
+    <div class="form-group">
+        <label for="BorrowPrice">Borrow Price</label>
+        <input type="number" class="form-control" id="BorrowPrice" name="BorrowPrice" step="0.01" />
+    </div>
+    <div class="form-group">
+        <label for="YearPublished">Year Published</label>
+        <input type="number" class="form-control" id="YearPublished" name="YearPublished" />
+    </div>
+    <div class="form-group">
+        <label for="AgeLimit">Age Limit</label>
+        <input type="text" class="form-control" id="AgeLimit" name="AgeLimit" />
+    </div>
+    <div class="form-group">
+        <label for="Formats">Formats</label>
+        <input type="text" class="form-control" id="Formats" name="Formats" />
+    </div>
+    <div class="form-group">
+        <label for="IsBuyOnly">Is Buy Only</label>
+        <input type="checkbox" id="IsBuyOnly" name="IsBuyOnly" />
+    </div>
+    <button type="submit" class="btn btn-success">Save</button>
+</form>
