@@ -1,0 +1,55 @@
+﻿@model test.Models.User
+
+@{
+    ViewData["Title"] = "User Profile";
+}
+
+<div class="container">
+    <h1 class="my-4">Your Profile</h1>
+
+    <!-- User Personal Data -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Personal Information</h4>
+        </div>
+        <div class="card-body">
+            <p><strong>ID:</strong> @Model.Id</p>
+            <p><strong>Username:</strong> @Model.Username</p>
+            <p><strong>Email:</strong> @Model.Email</p>
+        </div>
+    </div>
+
+    <!-- Display Purchase History (You can replace this with actual data) -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Recent Purchases</h4>
+        </div>
+        <div class="card-body">
+            <p><em>Your recent purchases will be displayed here.</em></p>
+
+            <!-- Example of Purchase List (Replace with real data) -->
+            <ul class="list-group">
+                <li class="list-group-item">
+                    <strong>Purchase 1:</strong> Product A - $20.00 <br />
+                    <small>Purchased on: 2024-12-10</small>
+                </li>
+                <li class="list-group-item">
+                    <strong>Purchase 2:</strong> Product B - $15.00 <br />
+                    <small>Purchased on: 2024-12-05</small>
+                </li>
+                <li class="list-group-item">
+                    <strong>Purchase 3:</strong> Product C - $30.00 <br />
+                    <small>Purchased on: 2024-11-30</small>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Button to edit profile (optional) -->
+    <a href="@Url.Action("Edit", "Account", new { id = Model.Id })" class="btn btn-primary">Edit Profile</a>
+</div>
+
+<!-- Optional: Add Bootstrap 4 or 5 CDN for styling -->
+@section Styles {
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
+}

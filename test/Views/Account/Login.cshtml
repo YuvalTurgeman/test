@@ -1,0 +1,34 @@
+﻿@model test.Models.User
+
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="container">
+    <h1 class="my-4">Login</h1>
+
+    <form method="post">
+        <div class="form-group">
+            <label for="Email">Email</label>
+            <input type="email" class="form-control" id="Email" name="Email" required />
+        </div>
+
+        <div class="form-group">
+            <label for="Password">Password</label>
+            <input type="password" class="form-control" id="Password" name="Password" required />
+        </div>
+
+        @if (ViewData["LoginError"] != null)
+        {
+            <div class="alert alert-danger mt-3">
+                @ViewData["LoginError"]
+            </div>
+        }
+
+        <button type="submit" class="btn btn-primary">Login</button>
+    </form>
+</div>
+
+@section Styles {
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet" />
+}
