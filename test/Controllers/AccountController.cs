@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using test.Data;
 using test.Models;
@@ -13,7 +14,7 @@ namespace test.Controllers
         {
             _context = context;
         }
-        
+
         // GET: Account/Login
         public IActionResult Login()
         {
@@ -47,7 +48,7 @@ namespace test.Controllers
             // Redirect to the user's profile or dashboard
             return RedirectToAction("ShowUser", user);
         }
-        
+
         // GET: Account/Register
         public IActionResult Register()
         {
@@ -71,7 +72,7 @@ namespace test.Controllers
                 // Hash the user's password
                 user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
                 user.Permission = UserPermission.Customer;
-                
+
                 // Add the user to the database
                 _context.users.Add(user);
                 _context.SaveChanges();
@@ -84,11 +85,150 @@ namespace test.Controllers
             return View(user);
         }
 
-        // GET: Account/ShowUser
+        /*// GET: Account/ShowUser
         public IActionResult ShowUser(User user)
         {
-            
+
             return View(user);
+        }*/
+
+        // GET: Account/ShowUser
+        public IActionResult ShowUser(int? id)
+        {
+            // Get the logged-in user's ID from session
+            var userId = HttpContext.Session.GetInt32("UserId");
+
+            // If no ID provided, use the logged-in user's ID
+            id = id ?? userId;
+
+            // If no session and no ID provided, redirect to login
+            if (!id.HasValue)
+            {
+                return RedirectToAction("Login");
+            }
+
+            var user = _context.users.Find(id.Value);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            // Only allow viewing if it's the logged-in user
+            if (userId != user.Id)
+            {
+                return Unauthorized();
+            }
+
+            return View(user);
+        }
+
+        // POST: Account/EditUsername
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult EditUsername(int id, string newUsername)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue || userId.Value != id)
+            {
+                return RedirectToAction("Login");
+            }
+
+            var user = _context.users.Find(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            if (string.IsNullOrWhiteSpace(newUsername) || newUsername.Length > 50)
+            {
+                TempData["Error"] = "Username must be between 1 and 50 characters.";
+                return RedirectToAction("ShowUser", new { id = user.Id });
+            }
+
+            user.Username = newUsername;
+            _context.SaveChanges();
+
+            TempData["Success"] = "Username updated successfully.";
+            return RedirectToAction("ShowUser", new { id = user.Id });
+        }
+
+        // POST: Account/EditEmail
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult EditEmail(int id, string newEmail)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue || userId.Value != id)
+            {
+                return RedirectToAction("Login");
+            }
+
+            var user = _context.users.Find(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            if (string.IsNullOrWhiteSpace(newEmail) || !new EmailAddressAttribute().IsValid(newEmail))
+            {
+                TempData["Error"] = "Please enter a valid email address.";
+                return RedirectToAction("ShowUser", new { id = user.Id });
+            }
+
+            if (_context.users.Any(u => u.Email == newEmail && u.Id != id))
+            {
+                TempData["Error"] = "This email is already in use.";
+                return RedirectToAction("ShowUser", new { id = user.Id });
+            }
+
+            user.Email = newEmail;
+            _context.SaveChanges();
+
+            TempData["Success"] = "Email updated successfully.";
+            return RedirectToAction("ShowUser", new { id = user.Id });
+        }
+
+        // POST: Account/EditPassword
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult EditPassword(int id, string newPassword, string confirmPassword)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue || userId.Value != id)
+            {
+                return RedirectToAction("Login");
+            }
+
+            var user = _context.users.Find(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+            {
+                TempData["Error"] = "Password must be at least 6 characters long.";
+                return RedirectToAction("ShowUser", new { id = user.Id });
+            }
+
+            if (newPassword != confirmPassword)
+            {
+                TempData["Error"] = "Passwords do not match.";
+                return RedirectToAction("ShowUser", new { id = user.Id });
+            }
+
+            user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            _context.SaveChanges();
+
+            TempData["Success"] = "Password updated successfully.";
+            return RedirectToAction("ShowUser", new { id = user.Id });
+        }
+
+        // Add a Logout action
+        public IActionResult Logout()
+        {
+            HttpContext.Session.Clear();
+            return RedirectToAction("Login");
         }
     }
 }
