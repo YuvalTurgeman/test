@@ -2,7 +2,7 @@
 
 <h1>Manage Books</h1>
 
-<table class="table">
+<table class="table table-responsive">
     <thead>
     <tr>
         <th>Title</th>
@@ -23,29 +23,39 @@
     @foreach (var book in Model)
     {
     <tr>
-        <td>@book.Title</td>
+        <td>@Html.Encode(book.Title)</td>
         <td>
             @if (!string.IsNullOrEmpty(book.CoverImage))
             {
-            <img src="@book.CoverImage" alt="@book.Title Cover" style="width: 50px; height: auto;" />
+            <img src="@Html.Encode(book.CoverImage)" alt="@Html.Encode(book.Title) Cover" style="width: 50px; height: auto;" />
             }
             else
             {
             <span>No Image</span>
             }
         </td>
-        <td>@book.Genre</td>
-        <td>@book.Author</td>
-        <td>@book.Publisher</td>
-        <td>@book.PurchasePrice?.ToString("C") ?? "N/A"</td>
-        <td>@book.BorrowPrice?.ToString("C") ?? "N/A"</td>
+        <td>@Html.Encode(book.Genre)</td>
+        <td>@Html.Encode(book.Author)</td>
+        <td>@Html.Encode(book.Publisher)</td>
+        <td>@book.PurchasePrice?.ToString("C", System.Globalization.CultureInfo.CurrentCulture) ?? "N/A"</td>
+        <td>@book.BorrowPrice?.ToString("C", System.Globalization.CultureInfo.CurrentCulture) ?? "N/A"</td>
         <td>@book.YearPublished?.ToString() ?? "N/A"</td>
-        <td>@book.AgeLimit ?? "N/A"</td>
-        <td>@book.Formats ?? "N/A"</td>
+        <td>@Html.Encode(book.AgeLimit) ?? "N/A"</td>
+        <td>@Html.Encode(book.Formats) ?? "N/A"</td>
         <td>@(book.IsBuyOnly ? "Yes" : "No")</td>
         <td>
-            <a href="@Url.Action("Edit", "Books", new { id = book.Id })" class="btn btn-primary">Edit</a>
-            <a href="@Url.Action("Delete", "Books", new { id = book.Id })" class="btn btn-danger">Delete</a>
+            <a href="@Url.Action("Edit", "Books", new { id = book.Id })" class="btn btn-primary" aria-label="Edit @book.Title">Edit</a>
+            <form asp-action="DeleteConfirmed" asp-route-id="@book.Id" method="post" style="display:inline;" onsubmit="return confirmDelete();">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger" aria-label="Delete @book.Title">Delete</button>
+            </form>
+
+            <script>
+                function confirmDelete() {
+                    return confirm("Are you sure you want to delete this book?");
+                }
+            </script>
+
         </td>
     </tr>
     }

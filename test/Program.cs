@@ -14,8 +14,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Add DALs
 builder.Services.AddScoped<BookDAL>();
-builder.Services.AddScoped<TransactionDAL>();
-builder.Services.AddScoped<ReviewDAL>();
+
 
 // Add Swagger generation
 builder.Services.AddSwaggerGen(c =>

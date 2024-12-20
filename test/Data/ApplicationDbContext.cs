@@ -10,7 +10,6 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<BookModel> Books { get; set; }
-    public DbSet<TransactionModel> Transactions { get; set; }
-    public DbSet<ReviewModel> Reviews { get; set; }
+    
 
 }
