@@ -139,5 +139,52 @@ public class BooksController : Controller
         // If validation fails, return the form with errors
         return View(book);
     }
+    
+    ////users:
+    [HttpGet("UserHomePage")]
+    public async Task<IActionResult> UserHomePage(string genre = null, decimal? minPrice = null, decimal? maxPrice = null)
+    {
+        var booksQuery = _context.Books.AsQueryable();
+
+        // Apply filters if provided
+        if (!string.IsNullOrEmpty(genre))
+            booksQuery = booksQuery.Where(b => b.Genre == genre);
+        if (minPrice.HasValue)
+            booksQuery = booksQuery.Where(b => b.PurchasePrice >= minPrice.Value || b.BorrowPrice >= minPrice.Value);
+        if (maxPrice.HasValue)
+            booksQuery = booksQuery.Where(b => b.PurchasePrice <= maxPrice.Value || b.BorrowPrice <= maxPrice.Value);
+
+        var books = await booksQuery.ToListAsync();
+        return View(books); // Pass books to the view
+    }
+
+    [HttpPost("Purchase/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Purchase(int id)
+    {
+        var book = await _context.Books.FindAsync(id);
+        if (book == null)
+        {
+            return NotFound(); // Book not found
+        }
+
+        // Handle purchase logic here (e.g., add to user's purchased books)
+        return RedirectToAction("UserHomePage");
+    }
+
+    [HttpPost("Borrow/{id:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Borrow(int id)
+    {
+        var book = await _context.Books.FindAsync(id);
+        if (book == null)
+        {
+            return NotFound(); // Book not found
+        }
+
+        // Handle borrow logic here (e.g., add to user's borrowed books or waiting list)
+        return RedirectToAction("UserHomePage");
+    }
+
 
 }
