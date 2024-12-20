@@ -32,6 +32,7 @@ public class BooksController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Create(BookModel book)
     {
+        Console.WriteLine(book);
         Console.WriteLine("trying to add book");
         if (ModelState.IsValid)
         {
@@ -50,6 +51,15 @@ public class BooksController : Controller
             Console.WriteLine("saved to db");
             // Redirect to the AdminBooks action
             return RedirectToAction("AdminBooks");
+        }
+        else
+        {
+            foreach (var error in ModelState)
+            {
+                Console.WriteLine($"Key: {error.Key}, Errors: {string.Join(", ", error.Value.Errors.Select(e => e.ErrorMessage))}");
+            }
+            return View(book);
+        
         }
 
         // If validation fails, return the form with errors
