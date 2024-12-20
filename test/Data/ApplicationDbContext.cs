@@ -1,3 +1,4 @@
+
 using Microsoft.EntityFrameworkCore;
 using test.Models;
 
@@ -6,11 +7,13 @@ namespace test.Data
     public class ApplicationDbContext : DbContext
     {
         public DbSet<User> users { get; set; }
+        public DbSet<BookModel> Books { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
         }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -24,3 +27,4 @@ namespace test.Data
         }
     }
 }
+
