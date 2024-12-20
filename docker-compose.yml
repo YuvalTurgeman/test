@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: testdb
     ports:
-      - "5433:5432"  # Updated host port to 5433
+      - "5433:5432"  
     networks:
       - app-network
     volumes:
