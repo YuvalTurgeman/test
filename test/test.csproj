@@ -14,7 +14,11 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
       <PackageReference Include="EntityFramework" Version="6.5.1" />
+      <PackageReference Include="NETStandard.Library.NETFramework" Version="2.0.0-preview2-25405-01" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
+      <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.Design" Version="2.0.0-preview1" />
     </ItemGroup>
 
 </Project>
