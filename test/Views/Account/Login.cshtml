@@ -1,0 +1,64 @@
+﻿@model test.Models.User
+
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-lg">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Welcome Back
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                Please sign in to continue
+            </p>
+        </div>
+
+        <form class="mt-8 space-y-6" method="post">
+            <div class="rounded-md shadow-sm space-y-4">
+                <div>
+                    <label for="Email" class="block text-sm font-medium text-gray-700">
+                        Email Address
+                    </label>
+                    <input type="email" id="Email" name="Email" required
+                           class="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                           placeholder="Enter your email" />
+                </div>
+
+                <div>
+                    <label for="Password" class="block text-sm font-medium text-gray-700">
+                        Password
+                    </label>
+                    <input type="password" id="Password" name="Password" required
+                           class="mt-1 appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                           placeholder="Enter your password" />
+                </div>
+            </div>
+
+            @if (ViewData["LoginError"] != null)
+            {
+                <div class="rounded-md bg-red-50 p-4 mt-4">
+                    <div class="flex">
+                        <div class="text-red-700">
+                            @ViewData["LoginError"]
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="flex items-center justify-between">
+                <a href="/forgot-password" class="text-sm font-medium text-blue-600 hover:text-blue-500">
+                    Forgot your password?
+                </a>
+            </div>
+
+            <div>
+                <button type="submit"
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Sign in
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
