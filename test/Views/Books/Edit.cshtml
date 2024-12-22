@@ -1,0 +1,53 @@
+@model test.Models.BookModel
+
+<h2>Edit Book</h2>
+
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+    <div class="form-group">
+        <label asp-for="Title"></label>
+        <input asp-for="Title" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="CoverImage"></label>
+        <input asp-for="CoverImage" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="Genre"></label>
+        <input asp-for="Genre" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="Author"></label>
+        <input asp-for="Author" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="Publisher"></label>
+        <input asp-for="Publisher" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="PurchasePrice"></label>
+        <input asp-for="PurchasePrice" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="BorrowPrice"></label>
+        <input asp-for="BorrowPrice" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="YearPublished"></label>
+        <input asp-for="YearPublished" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="AgeLimit"></label>
+        <input asp-for="AgeLimit" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="IsBuyOnly"></label>
+        <input asp-for="IsBuyOnly" type="checkbox" />
+    </div>
+    <div class="form-group">
+        <label asp-for="Formats"></label>
+        <input asp-for="Formats" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+</form>

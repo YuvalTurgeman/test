@@ -1,0 +1,44 @@
+@model IEnumerable<test.Models.BookModel>
+
+<h1>Available Books</h1>
+
+<form method="get" asp-action="UserHomePage">
+    <div class="form-group">
+        <label for="genre">Genre</label>
+        <input type="text" id="genre" name="genre" class="form-control" placeholder="Enter genre" />
+    </div>
+    <div class="form-group">
+        <label for="minPrice">Min Price</label>
+        <input type="number" id="minPrice" name="minPrice" class="form-control" step="0.01" />
+    </div>
+    <div class="form-group">
+        <label for="maxPrice">Max Price</label>
+        <input type="number" id="maxPrice" name="maxPrice" class="form-control" step="0.01" />
+    </div>
+    <button type="submit" class="btn btn-primary">Filter</button>
+</form>
+
+<div class="row mt-4">
+    @foreach (var book in Model)
+    {
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <img src="@book.CoverImage" class="card-img-top" alt="@book.Title Cover" />
+                <div class="card-body">
+                    <h5 class="card-title">@book.Title</h5>
+                    <p class="card-text"><strong>Author:</strong> @book.Author</p>
+                    <p class="card-text"><strong>Borrow Price:</strong> @book.BorrowPrice?.ToString("C") ?? "N/A"</p>
+                    <p class="card-text"><strong>Purchase Price:</strong> @book.PurchasePrice?.ToString("C") ?? "N/A"</p>
+                    <form asp-action="Purchase" asp-route-id="@book.Id" method="post" style="display:inline;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-success">Purchase</button>
+                    </form>
+                    <form asp-action="Borrow" asp-route-id="@book.Id" method="post" style="display:inline;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-warning">Borrow</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
