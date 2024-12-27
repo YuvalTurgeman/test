@@ -3,13 +3,16 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using test;
 
-main
+// main
 using test.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddRazorRuntimeCompilation(); // Enable runtime compilation in development
+
 
 
 // // Add ApplicationDbContext with PostgreSQL
@@ -50,6 +53,18 @@ builder.Services.AddSession(options =>
 
 
 var app = builder.Build();
+
+// ------------------------------------------------------------------
+//Force database to drop and recreate
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    
+    dbContext.Database.EnsureDeleted(); // Drops the database
+    dbContext.Database.EnsureCreated(); // Recreates it based on models
+    // Use dbContext.Database.Migrate(); if you want to apply migrations instead
+}
+// ------------------------------------------------------------------
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

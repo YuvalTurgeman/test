@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using test.Data;
 using test.Models;
 using BCrypt.Net;
+using Microsoft.EntityFrameworkCore;
 
 namespace test.Controllers
 {
@@ -97,7 +98,7 @@ namespace test.Controllers
         {
             // Get the logged-in user's ID from session
             var userId = HttpContext.Session.GetInt32("UserId");
-
+            
             // If no ID provided, use the logged-in user's ID
             id = id ?? userId;
 
@@ -113,11 +114,14 @@ namespace test.Controllers
                 return NotFound();
             }
 
+            // Console.WriteLine(userId);
+            // Console.WriteLine(user.Id);
+            
             // Only allow viewing if it's the logged-in user
-            if (userId != user.Id)
-            {
-                return Unauthorized();
-            }
+            // if (userId != user.Id)
+            // {
+            //     return Unauthorized();
+            // }
 
             return View(user);
         }
@@ -230,5 +234,103 @@ namespace test.Controllers
             HttpContext.Session.Clear();
             return RedirectToAction("Login");
         }
+        
+        // GET: Account/AdminUserManagement
+        [HttpGet]
+        public async Task<IActionResult> AdminUserManagement()
+        {
+            var users = await _context.users.ToListAsync(); // Fetch all users from the database
+            return View(users); // Pass the users to the view
+        }
+        
+        // GET: Account/CreateUser
+        [HttpGet]
+        public IActionResult AdminCreateUser()
+        {
+            return View(); // Render the CreateUser.cshtml view
+        }
+
+// POST: Account/CreateUser
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AdminCreateUser(User user)
+        {
+            if (ModelState.IsValid)
+            {
+                if (_context.users.Any(u => u.Email == user.Email))
+                {
+                    ModelState.AddModelError("Email", "This email is already in use.");
+                    return View(user);
+                }
+
+                user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password); // Hash the password
+                _context.users.Add(user); // Add user to database
+                await _context.SaveChangesAsync();
+                return RedirectToAction("AdminUserManagement"); // Redirect to AdminUserManagement
+            }
+
+            return View(user); // Return the form with validation errors
+        }
+        
+        // GET: Account/EditUser
+        [HttpGet]
+        public async Task<IActionResult> EditUser(int id)
+        {
+            var user = await _context.users.FindAsync(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+            return View(user);
+        }
+
+// POST: Account/AdminEditUser
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditUser(int id, User updatedUser)
+        {
+            if (id != updatedUser.Id)
+            {
+                return BadRequest();
+            }
+
+            if (ModelState.IsValid)
+            {
+                var user = await _context.users.FindAsync(id);
+                if (user == null)
+                {
+                    return NotFound();
+                }
+
+                user.Username = updatedUser.Username;
+                user.Email = updatedUser.Email;
+                user.Permission = updatedUser.Permission;
+
+                await _context.SaveChangesAsync();
+                return RedirectToAction("AdminUserManagement");
+            }
+
+            return View(updatedUser);
+        }
+
+        // POST: Account/DeleteUser
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteUser(int id)
+        {
+            var user = await _context.users.FindAsync(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            _context.users.Remove(user);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("AdminUserManagement");
+        }
+
+
+
     }
 }
