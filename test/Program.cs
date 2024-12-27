@@ -1,72 +1,56 @@
 using Microsoft.EntityFrameworkCore;
-
-
-// main
 using test.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
 builder.Services.AddControllersWithViews()
-    .AddRazorRuntimeCompilation(); // Enable runtime compilation in development
-
-
+    .AddRazorRuntimeCompilation(); // This line already includes AddControllersWithViews(), so we can remove the duplicate
 
 // Configure PostgreSQL Database Context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add DALs
+// Register all DAL services
 builder.Services.AddScoped<BookDAL>();
-builder.Services.AddScoped<DiscountDAL>();
 builder.Services.AddScoped<UserDAL>();
 builder.Services.AddScoped<PurchaseDAL>();
 builder.Services.AddScoped<BorrowDAL>();
+builder.Services.AddScoped<DiscountDAL>();
 
+// Configure Session
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30); // Set session timeout
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
 
 var app = builder.Build();
 
-// ------------------------------------------------------------------
-//Force database to drop and recreate
+// Database initialization
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    
     dbContext.Database.EnsureDeleted(); // Drops the database
     dbContext.Database.EnsureCreated(); // Recreates it based on models
-    // Use dbContext.Database.Migrate(); if you want to apply migrations instead
 }
-// ------------------------------------------------------------------
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
-
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
-app.UseSession(); // Add this line to enable session middleware
-
+app.UseSession();
 app.UseAuthorization();
 
-// Map routes for Razor views and controllers
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Start the application
 app.Run();

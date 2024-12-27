@@ -102,5 +102,33 @@ namespace test.Data
             await _context.SaveChangesAsync();
             return true;
         }
+        // Add these methods to BorrowDAL
+        public async Task<bool> HasActiveBookBorrowAsync(int userId, int bookId)
+        {
+            return await _context.Borrows
+                .AnyAsync(b => b.UserId == userId && 
+                               b.BookId == bookId && 
+                               !b.IsReturned);
+        }
+
+        public async Task<int> GetActiveBookBorrowsCountAsync(int bookId)
+        {
+            return await _context.Borrows
+                .CountAsync(b => b.BookId == bookId && !b.IsReturned);
+        }
+        
+
+// Add method for returning book with date
+        public async Task<BorrowModel> ReturnBookAsync(int id)
+        {
+            var borrow = await _context.Borrows.FindAsync(id);
+            if (borrow != null)
+            {
+                borrow.IsReturned = true;
+                borrow.ReturnedDate = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+            return borrow;
+        }
     }
 }
