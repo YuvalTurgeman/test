@@ -2,7 +2,14 @@ namespace test.Models;
 using System;
 
 public class BookModel
-{
+{   public BookModel()
+    {
+        // Initialize collections in constructor
+        Purchases = new List<PurchaseModel>();
+        Borrows = new List<BorrowModel>();
+        Discounts = new List<DiscountModel>();
+    }
+    
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
