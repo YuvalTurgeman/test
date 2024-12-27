@@ -24,6 +24,10 @@ namespace test.Models
         [Required]
         [EnumDataType(typeof(UserPermission))]
         public UserPermission Permission { get; set; }
+        
+        // Navigation properties
+        public virtual ICollection<PurchaseModel> Purchases { get; set; }
+        public virtual ICollection<BorrowModel> Borrows { get; set; }
     }
 
     public enum UserPermission
