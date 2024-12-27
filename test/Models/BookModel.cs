@@ -40,4 +40,9 @@ public class BookModel
 
     [MaxLength(100)]
     public string Formats { get; set; } // Example: "EPUB, PDF, MOBI"
+    
+    // Navigation properties
+    public virtual ICollection<PurchaseModel> Purchases { get; set; }
+    public virtual ICollection<BorrowModel> Borrows { get; set; }
+    public virtual ICollection<DiscountModel> Discounts { get; set; }
 }

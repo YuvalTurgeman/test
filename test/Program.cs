@@ -1,9 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
-using Microsoft.OpenApi.Models;
-using test;
 
-main
+// main
 using test.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,35 +10,17 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 
-// // Add ApplicationDbContext with PostgreSQL
-// builder.Services.AddDbContext<ApplicationDbContext>(options =>
-//     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// // Add DALs
-// builder.Services.AddScoped<BookDAL>();
-
-
-// // Add Swagger generation
-// builder.Services.AddSwaggerGen(c =>
-// {
-//     c.SwaggerDoc("v1", new OpenApiInfo
-//     {
-//         Title = "Your Project API",
-//         Version = "v1",
-//         Description = "API Documentation for Your Project"
-//     });
-//     c.OperationFilter<GroupByHttpMethodOperationFilter>();
-// });
-
-// // Set up a single WebApplication instance
-// builder.WebHost.UseUrls("http://localhost:8080"); // Main app listens on 8080
-
-
 // Configure PostgreSQL Database Context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configure Session
+// Add DALs
+builder.Services.AddScoped<BookDAL>();
+builder.Services.AddScoped<DiscountDAL>();
+builder.Services.AddScoped<UserDAL>();
+builder.Services.AddScoped<PurchaseDAL>();
+builder.Services.AddScoped<BorrowDAL>();
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30); // Set session timeout
@@ -48,19 +28,23 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-
 var app = builder.Build();
+
+// ------------------------------------------------------------------
+//Force database to drop and recreate
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    
+    dbContext.Database.EnsureDeleted(); // Drops the database
+    dbContext.Database.EnsureCreated(); // Recreates it based on models
+    // Use dbContext.Database.Migrate(); if you want to apply migrations instead
+}
+// ------------------------------------------------------------------
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-
-//     app.UseSwagger();
-//     app.UseSwaggerUI(c =>
-//     {
-//         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Your Project API v1");
-//         c.RoutePrefix = "swagger"; // Access Swagger at http://localhost:8080/swagger
-//     });
 
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
