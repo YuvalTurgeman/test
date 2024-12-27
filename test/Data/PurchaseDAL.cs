@@ -76,5 +76,23 @@ namespace test.Data
             await _context.SaveChangesAsync();
             return true;
         }
+        // Add these methods to PurchaseDAL
+        public async Task<List<PurchaseModel>> GetRecentPurchasesAsync(int count = 10)
+        {
+            return await _context.Purchases
+                .Include(p => p.Book)
+                .Include(p => p.User)
+                .Include(p => p.Discount)
+                .OrderByDescending(p => p.PurchaseDate)
+                .Take(count)
+                .ToListAsync();
+        }
+
+// Add validation method
+        public async Task<bool> IsPurchaseValidAsync(int bookId, int userId)
+        {
+            var book = await _context.Books.FindAsync(bookId);
+            return book != null && !book.IsBuyOnly;
+        }
     }
 }

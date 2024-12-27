@@ -24,29 +24,43 @@ namespace test.Data
         // Read
         public async Task<User> GetUserByIdAsync(int id)
         {
-            return await _context.users.FindAsync(id);
+            return await _context.users
+                .Include(u => u.Purchases)
+                    .ThenInclude(p => p.Book)
+                .Include(u => u.Borrows)
+                    .ThenInclude(b => b.Book)
+                .FirstOrDefaultAsync(u => u.Id == id);
         }
 
         public async Task<User> GetUserByEmailAsync(string email)
         {
             return await _context.users
+                .Include(u => u.Purchases)
+                .Include(u => u.Borrows)
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
         }
 
         public async Task<User> GetUserByUsernameAsync(string username)
         {
             return await _context.users
+                .Include(u => u.Purchases)
+                .Include(u => u.Borrows)
                 .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
         }
 
         public async Task<List<User>> GetAllUsersAsync()
         {
-            return await _context.users.ToListAsync();
+            return await _context.users
+                .Include(u => u.Purchases)
+                .Include(u => u.Borrows)
+                .ToListAsync();
         }
 
         public async Task<List<User>> GetUsersByPermissionAsync(UserPermission permission)
         {
             return await _context.users
+                .Include(u => u.Purchases)
+                .Include(u => u.Borrows)
                 .Where(u => u.Permission == permission)
                 .ToListAsync();
         }
@@ -54,7 +68,7 @@ namespace test.Data
         // Update
         public async Task<User> UpdateUserAsync(User user)
         {
-            _context.users.Update(user);
+            _context.Entry(user).State = EntityState.Modified;
             await _context.SaveChangesAsync();
             return user;
         }
@@ -62,9 +76,16 @@ namespace test.Data
         // Delete
         public async Task<bool> DeleteUserAsync(int id)
         {
-            var user = await _context.users.FindAsync(id);
+            var user = await _context.users
+                .Include(u => u.Purchases)
+                .Include(u => u.Borrows)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
             if (user == null)
                 return false;
+
+            // Optional: Add logic to handle related records
+            // For example, you might want to check if the user has active borrows
 
             _context.users.Remove(user);
             await _context.SaveChangesAsync();
@@ -80,8 +101,7 @@ namespace test.Data
             if (user == null)
                 return false;
 
-            // Note: In a real application, you should use proper password hashing
-            return user.Password == password;
+            return BCrypt.Net.BCrypt.Verify(password, user.Password);
         }
 
         // Validation methods
@@ -95,6 +115,35 @@ namespace test.Data
         {
             return !await _context.users
                 .AnyAsync(u => u.Username.ToLower() == username.ToLower());
+        }
+
+        // Statistics methods
+        public async Task<int> GetUserPurchaseCountAsync(int userId)
+        {
+            return await _context.users
+                .Where(u => u.Id == userId)
+                .SelectMany(u => u.Purchases)
+                .CountAsync();
+        }
+
+        public async Task<int> GetUserActiveBorrowsCountAsync(int userId)
+        {
+            return await _context.users
+                .Where(u => u.Id == userId)
+                .SelectMany(u => u.Borrows)
+                .CountAsync(b => !b.IsReturned);
+        }
+
+        // Profile management
+        public async Task<bool> ChangePasswordAsync(int userId, string newPassword)
+        {
+            var user = await _context.users.FindAsync(userId);
+            if (user == null)
+                return false;
+
+            user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

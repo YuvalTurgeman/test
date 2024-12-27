@@ -1,5 +1,4 @@
-
-@model test.Models.User
+﻿@model test.Models.User
 
 <div class="container mt-5">
     <div class="row justify-content-center">
@@ -9,14 +8,17 @@
                     <h3 class="mb-0">Login</h3>
                 </div>
                 <div class="card-body">
-                    <form method="post">
+                    <form asp-action="Login" asp-controller="Account" method="post">
+                        @Html.AntiForgeryToken()
                         <div class="mb-3">
-                            <label for="Email" class="form-label">Email Address</label>
-                            <input type="email" id="Email" name="Email" class="form-control" placeholder="Enter your email" required />
+                            <label asp-for="Email" class="form-label">Email Address</label>
+                            <input asp-for="Email" class="form-control" placeholder="Enter your email" required />
+                            <span asp-validation-for="Email" class="text-danger"></span>
                         </div>
                         <div class="mb-3">
-                            <label for="Password" class="form-label">Password</label>
-                            <input type="password" id="Password" name="Password" class="form-control" placeholder="Enter your password" required />
+                            <label asp-for="Password" class="form-label">Password</label>
+                            <input asp-for="Password" type="password" class="form-control" placeholder="Enter your password" required />
+                            <span asp-validation-for="Password" class="text-danger"></span>
                         </div>
                         @if (ViewData["LoginError"] != null)
                         {
@@ -30,9 +32,13 @@
                     </form>
                 </div>
                 <div class="card-footer text-center">
-                    <a href="/Account/Register" class="btn btn-link">Don't have an account? Register here</a>
+                    <a asp-action="Register" asp-controller="Account" class="btn btn-link">Don't have an account? Register here</a>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

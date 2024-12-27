@@ -60,5 +60,40 @@ namespace test.Data
                 await _context.SaveChangesAsync();
             }
         }
+        // Add these methods to DiscountDAL
+        public async Task<List<DiscountModel>> GetAllDiscountsAsync()
+        {
+            return await _context.Discounts
+                .Include(d => d.Book)
+                .ToListAsync();
+        }
+
+        public async Task<decimal> CalculateDiscountedPriceAsync(int bookId)
+        {
+            var book = await _context.Books.FindAsync(bookId);
+            if (book == null || !book.PurchasePrice.HasValue)
+                return 0;
+
+            var activeDiscount = await _context.Discounts
+                .Where(d => d.BookId == bookId && 
+                            d.IsActive && 
+                            d.EndDate > DateTime.UtcNow)
+                .OrderByDescending(d => d.DiscountAmount)
+                .FirstOrDefaultAsync();
+
+            if (activeDiscount == null)
+                return book.PurchasePrice.Value;
+
+            return book.PurchasePrice.Value * (1 - activeDiscount.DiscountAmount / 100);
+        }
+
+// Add validation method
+        public async Task<bool> HasActiveDiscountAsync(int bookId)
+        {
+            return await _context.Discounts
+                .AnyAsync(d => d.BookId == bookId && 
+                               d.IsActive && 
+                               d.EndDate > DateTime.UtcNow);
+        }
     }
 }

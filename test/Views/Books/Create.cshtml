@@ -1,52 +1,92 @@
-@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model test.Models.BookModel
 
-<h1>Create New Book</h1>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Add New Book</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        @Html.AntiForgeryToken()
 
-<form asp-action="Create" method="post">
-    <div class="form-group">
-        <label for="Title">Title</label>
-        <input type="text" class="form-control" id="Title" name="Title" required />
+                        <div class="mb-3">
+                            <label asp-for="Title" class="form-label">Title</label>
+                            <input asp-for="Title" class="form-control" required />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Author" class="form-label">Author</label>
+                            <input asp-for="Author" class="form-control" required />
+                            <span asp-validation-for="Author" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Genre" class="form-label">Genre</label>
+                            <input asp-for="Genre" class="form-control" />
+                            <span asp-validation-for="Genre" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Publisher" class="form-label">Publisher</label>
+                            <input asp-for="Publisher" class="form-control" />
+                            <span asp-validation-for="Publisher" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="PurchasePrice" class="form-label">Purchase Price</label>
+                            <input asp-for="PurchasePrice" type="number" step="0.01" class="form-control" />
+                            <span asp-validation-for="PurchasePrice" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="BorrowPrice" class="form-label">Borrow Price</label>
+                            <input asp-for="BorrowPrice" type="number" step="0.01" class="form-control" />
+                            <span asp-validation-for="BorrowPrice" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="YearPublished" class="form-label">Year Published</label>
+                            <input asp-for="YearPublished" type="number" class="form-control" />
+                            <span asp-validation-for="YearPublished" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="AgeLimit" class="form-label">Age Limit</label>
+                            <input asp-for="AgeLimit" class="form-control" />
+                            <span asp-validation-for="AgeLimit" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Formats" class="form-label">Formats</label>
+                            <input asp-for="Formats" class="form-control" />
+                            <span asp-validation-for="Formats" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input asp-for="IsBuyOnly" type="checkbox" class="form-check-input" />
+                            <label asp-for="IsBuyOnly" class="form-check-label">Is Buy Only</label>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="CoverImage" class="form-label">Cover Image URL</label>
+                            <input asp-for="CoverImage" class="form-control" />
+                            <span asp-validation-for="CoverImage" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Create Book</button>
+                            <a asp-action="AdminBooks" class="btn btn-secondary">Back to List</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="form-group">
-        <label for="CoverImage">Cover Image (URL)</label>
-        <input type="text" class="form-control" id="CoverImage" name="CoverImage" required />
-    </div>
-    <div class="form-group">
-        <label for="Genre">Genre</label>
-        <input type="text" class="form-control" id="Genre" name="Genre" required />
-    </div>
-    <div class="form-group">
-        <label for="Author">Author</label>
-        <input type="text" class="form-control" id="Author" name="Author" required />
-    </div>
-    <div class="form-group">
-        <label for="Publisher">Publisher</label>
-        <input type="text" class="form-control" id="Publisher" name="Publisher" required />
-    </div>
-    <div class="form-group">
-        <label for="PurchasePrice">Purchase Price</label>
-        <input type="number" class="form-control" id="PurchasePrice" name="PurchasePrice" step="0.01" />
-    </div>
-    <div class="form-group">
-        <label for="BorrowPrice">Borrow Price</label>
-        <input type="number" class="form-control" id="BorrowPrice" name="BorrowPrice" step="0.01" />
-    </div>
-    <div class="form-group">
-        <label for="YearPublished">Year Published</label>
-        <input type="number" class="form-control" id="YearPublished" name="YearPublished" />
-    </div>
-    <div class="form-group">
-        <label for="AgeLimit">Age Limit</label>
-        <input type="text" class="form-control" id="AgeLimit" name="AgeLimit" required />
-    </div>
-    <div class="form-group">
-        <label for="Formats">Formats</label>
-        <input type="text" class="form-control" id="Formats" name="Formats" required />
-    </div>
-    <div class="form-group">
-        <label for="IsBuyOnly">Is Buy Only</label>
-        <input type="checkbox" id="IsBuyOnly" name="IsBuyOnly" />
-    </div>
-    <button type="submit" class="btn btn-success">Save</button>
-</form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
