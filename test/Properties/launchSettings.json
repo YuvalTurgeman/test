@@ -14,7 +14,7 @@
       "dotnetRunMessages": true,
       "launchBrowser": true,
       "applicationUrl": "http://localhost:5001",
-      "launchUrl": "Account/Login", 
+      "launchUrl": "Books/UserHomePage", 
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
