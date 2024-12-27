@@ -31,6 +31,16 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+// Configure Kestrel to use HTTPS
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenLocalhost(5001, listenOptions =>
+    {
+        listenOptions.UseHttps(); // Use the development HTTPS certificate
+    });
+});
+
+
 var app = builder.Build();
 
 // ------------------------------------------------------------------
@@ -64,9 +74,14 @@ app.UseSession(); // Add this line to enable session middleware
 app.UseAuthorization();
 
 // Map routes for Razor views and controllers
+// app.MapControllerRoute(
+//     name: "default",
+//     pattern: "{controller=Home}/{action=Index}/{id?}");
+
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Account}/{action=Login}/{id?}");
+
 
 // Start the application
 app.Run();
