@@ -10,6 +10,8 @@ namespace test.Data
         public DbSet<DiscountModel> Discounts { get; set; }
         public DbSet<PurchaseModel> Purchases { get; set; }
         public DbSet<BorrowModel> Borrows { get; set; }
+        public DbSet<CartItemModel> CartItems { get; set; }
+        public DbSet<ShoppingCartModel> ShoppingCarts { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
@@ -20,52 +22,104 @@ namespace test.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Map UserPermission enum to string
+            // User relationships
             modelBuilder.Entity<User>()
                 .Property(u => u.Permission)
                 .HasConversion<string>()
                 .IsRequired();
 
-            // Configure many-to-many relationship between Purchase and Borrow
-            modelBuilder.Entity<PurchaseModel>()
-                .HasMany(p => p.Borrows)
-                .WithMany(b => b.Purchases)
-                .UsingEntity(j => j.ToTable("PurchaseBorrows"));
-
-            // Configure one-to-many relationship between Book and Purchase
-            modelBuilder.Entity<BookModel>()
-                .HasMany(b => b.Purchases)
-                .WithOne(p => p.Book)
-                .HasForeignKey(p => p.BookId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Configure one-to-many relationship between Book and Borrow
-            modelBuilder.Entity<BookModel>()
-                .HasMany(b => b.Borrows)
-                .WithOne(b => b.Book)
-                .HasForeignKey(b => b.BookId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Configure one-to-many relationship between User and Purchase
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Purchases)
                 .WithOne(p => p.User)
                 .HasForeignKey(p => p.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Configure one-to-many relationship between User and Borrow
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Borrows)
                 .WithOne(b => b.User)
                 .HasForeignKey(b => b.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Configure one-to-many relationship between Book and Discount
+            modelBuilder.Entity<User>()
+                .HasOne<ShoppingCartModel>()
+                .WithOne(sc => sc.User)
+                .HasForeignKey<ShoppingCartModel>(sc => sc.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Book relationships
+            modelBuilder.Entity<BookModel>()
+                .HasMany(b => b.Purchases)
+                .WithOne(p => p.Book)
+                .HasForeignKey(p => p.BookId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<BookModel>()
+                .HasMany(b => b.Borrows)
+                .WithOne(b => b.Book)
+                .HasForeignKey(b => b.BookId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<BookModel>()
                 .HasMany(b => b.Discounts)
                 .WithOne(d => d.Book)
                 .HasForeignKey(d => d.BookId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Purchase relationships
+            modelBuilder.Entity<PurchaseModel>()
+                .HasOne(p => p.Discount)
+                .WithMany()
+                .HasForeignKey(p => p.DiscountId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Shopping Cart relationships
+            modelBuilder.Entity<ShoppingCartModel>()
+                .HasMany(sc => sc.CartItems)
+                .WithOne(ci => ci.ShoppingCart)
+                .HasForeignKey(ci => ci.ShoppingCartId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Cart Item relationships
+            modelBuilder.Entity<CartItemModel>()
+                .HasOne(ci => ci.Book)
+                .WithMany()
+                .HasForeignKey(ci => ci.BookId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CartItemModel>()
+                .HasOne(ci => ci.Discount)
+                .WithMany()
+                .HasForeignKey(ci => ci.DiscountId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Performance Indexes
+            modelBuilder.Entity<BookModel>()
+                .HasIndex(b => b.Title);
+
+            modelBuilder.Entity<BookModel>()
+                .HasIndex(b => b.Author);
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Username)
+                .IsUnique();
+
+            modelBuilder.Entity<DiscountModel>()
+                .HasIndex(d => new { d.BookId, d.StartDate, d.EndDate });
+
+            modelBuilder.Entity<BorrowModel>()
+                .HasIndex(b => new { b.BookId, b.UserId, b.IsReturned });
+
+            modelBuilder.Entity<PurchaseModel>()
+                .HasIndex(p => new { p.BookId, p.UserId });
+
+            modelBuilder.Entity<CartItemModel>()
+                .HasIndex(ci => new { ci.ShoppingCartId, ci.BookId });
         }
     }
 }

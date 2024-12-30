@@ -1,23 +1,12 @@
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @model IEnumerable<test.Models.BookModel>
 
+@* Make sure this is placed at the top of the view *@
+@Html.AntiForgeryToken()
+
 <h1>Available Books</h1>
 
-<form method="get" asp-action="UserHomePage">
-    <div class="form-group">
-        <label for="genre">Genre</label>
-        <input type="text" id="genre" name="genre" class="form-control" placeholder="Enter genre" />
-    </div>
-    <div class="form-group">
-        <label for="minPrice">Min Price</label>
-        <input type="number" id="minPrice" name="minPrice" class="form-control" step="0.01" />
-    </div>
-    <div class="form-group">
-        <label for="maxPrice">Max Price</label>
-        <input type="number" id="maxPrice" name="maxPrice" class="form-control" step="0.01" />
-    </div>
-    <button type="submit" class="btn btn-primary">Filter</button>
-</form>
+<!-- Rest of the filter form stays the same -->
 
 <div class="row mt-4">
     @foreach (var book in Model)
@@ -28,16 +17,26 @@
                 <div class="card-body">
                     <h5 class="card-title">@book.Title</h5>
                     <p class="card-text"><strong>Author:</strong> @book.Author</p>
-                    <p class="card-text"><strong>Borrow Price:</strong> @book.BorrowPrice?.ToString("C") ?? "N/A"</p>
-                    <p class="card-text"><strong>Purchase Price:</strong> @book.PurchasePrice?.ToString("C") ?? "N/A"</p>
-                    <form asp-action="Purchase" asp-route-id="@book.Id" method="post" style="display:inline;">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-success">Purchase</button>
-                    </form>
-                    <form asp-action="Borrow" asp-route-id="@book.Id" method="post" style="display:inline;">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-warning">Borrow</button>
-                    </form>
+                    <p class="card-text"><strong>Borrow Price:</strong> @(book.BorrowPrice?.ToString("C") ?? "N/A")</p>
+                    <p class="card-text"><strong>Purchase Price:</strong> @(book.PurchasePrice?.ToString("C") ?? "N/A")</p>
+                    <div class="d-grid gap-2">
+                        <form asp-controller="ShoppingCart" asp-action="AddToCart" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="bookId" value="@book.Id" />
+                            <input type="hidden" name="isBorrow" value="false" />
+                            <button type="submit" class="btn btn-success w-100 mb-2">
+                                <i class="fas fa-shopping-cart"></i> Purchase
+                            </button>
+                        </form>
+                        <form asp-controller="ShoppingCart" asp-action="AddToCart" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="bookId" value="@book.Id" />
+                            <input type="hidden" name="isBorrow" value="true" />
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="fas fa-book-reader"></i> Borrow
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

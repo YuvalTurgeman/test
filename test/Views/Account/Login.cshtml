@@ -1,4 +1,8 @@
 ﻿@model test.Models.User
+@if (ViewData["LoginError"] != null)
+{
+    <div class="alert alert-danger">@ViewData["LoginError"]</div>
+}
 
 <div class="container mt-5">
     <div class="row justify-content-center">
