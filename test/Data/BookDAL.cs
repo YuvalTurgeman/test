@@ -41,21 +41,25 @@ namespace test.Data
         }
 
         // Get filtered books
-        public async Task<List<BookModel>> GetFilteredBooksAsync(string genre = null, decimal? minPrice = null, decimal? maxPrice = null)
-        {
-            var query = _context.Books.AsQueryable();
+        public async Task<List<BookModel>> GetFilteredBooksAsync(string genre = null, decimal? minPrice = null, decimal? maxPrice = null, string searchTerm = null)
+{
+    var query = _context.Books.AsQueryable();
 
-            if (!string.IsNullOrEmpty(genre))
-                query = query.Where(b => b.Genre == genre);
-            
-            if (minPrice.HasValue)
-                query = query.Where(b => b.PurchasePrice >= minPrice.Value || b.BorrowPrice >= minPrice.Value);
-            
-            if (maxPrice.HasValue)
-                query = query.Where(b => b.PurchasePrice <= maxPrice.Value || b.BorrowPrice <= maxPrice.Value);
+    if (!string.IsNullOrEmpty(genre))
+        query = query.Where(b => b.Genre == genre);
+    
+    if (minPrice.HasValue)
+        query = query.Where(b => b.PurchasePrice >= minPrice.Value || b.BorrowPrice >= minPrice.Value);
+    
+    if (maxPrice.HasValue)
+        query = query.Where(b => b.PurchasePrice <= maxPrice.Value || b.BorrowPrice <= maxPrice.Value);
+    
+    if (!string.IsNullOrEmpty(searchTerm))
+        query = query.Where(b => EF.Functions.Like(b.Title, $"%{searchTerm}%") || EF.Functions.Like(b.Author, $"%{searchTerm}%"));
 
-            return await query.Include(b => b.Discounts).ToListAsync();
-        }
+    return await query.Include(b => b.Discounts).ToListAsync();
+}
+
 
         // Update
         public async Task<BookModel> UpdateBookAsync(BookModel book)

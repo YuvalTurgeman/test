@@ -1,44 +1,56 @@
-@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model IEnumerable<test.Models.BookModel>
 
-@* Make sure this is placed at the top of the view *@
-@Html.AntiForgeryToken()
+<div class="container mt-4">
+    <h1 class="text-center text-primary mb-5">Available Books</h1>
 
-<h1>Available Books</h1>
-
-<!-- Rest of the filter form stays the same -->
-
-<div class="row mt-4">
-    @foreach (var book in Model)
-    {
+    <!-- Filter Form -->
+    <form class="row g-3 mb-4" method="get" asp-action="UserHomePage">
         <div class="col-md-4">
-            <div class="card mb-4">
-                <img src="@book.CoverImage" class="card-img-top" alt="@book.Title Cover" />
-                <div class="card-body">
-                    <h5 class="card-title">@book.Title</h5>
-                    <p class="card-text"><strong>Author:</strong> @book.Author</p>
-                    <p class="card-text"><strong>Borrow Price:</strong> @(book.BorrowPrice?.ToString("C") ?? "N/A")</p>
-                    <p class="card-text"><strong>Purchase Price:</strong> @(book.PurchasePrice?.ToString("C") ?? "N/A")</p>
-                    <div class="d-grid gap-2">
-                        <form asp-controller="ShoppingCart" asp-action="AddToCart" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="bookId" value="@book.Id" />
-                            <input type="hidden" name="isBorrow" value="false" />
-                            <button type="submit" class="btn btn-success w-100 mb-2">
-                                <i class="fas fa-shopping-cart"></i> Purchase
-                            </button>
-                        </form>
-                        <form asp-controller="ShoppingCart" asp-action="AddToCart" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="bookId" value="@book.Id" />
-                            <input type="hidden" name="isBorrow" value="true" />
-                            <button type="submit" class="btn btn-warning w-100">
-                                <i class="fas fa-book-reader"></i> Borrow
-                            </button>
-                        </form>
+            <label for="searchTerm" class="form-label">Search for a Book</label>
+            <input type="text" id="searchTerm" name="searchTerm" class="form-control" placeholder="Enter book title" />
+        </div>
+        <div class="col-md-4">
+            <label for="genre" class="form-label">Genre</label>
+            <input type="text" id="genre" name="genre" class="form-control" placeholder="Enter genre"/>
+        </div>
+        <div class="col-md-4">
+            <label for="minPrice" class="form-label">Min Price</label>
+            <input type="number" id="minPrice" name="minPrice" class="form-control" step="0.01"/>
+        </div>
+        <div class="col-md-4">
+            <label for="maxPrice" class="form-label">Max Price</label>
+            <input type="number" id="maxPrice" name="maxPrice" class="form-control" step="0.01"/>
+        </div>
+        <div class="col-md-12 text-center">
+            <button type="submit" class="btn btn-primary btn-lg">Filter</button>
+        </div>
+    </form>
+
+    <!-- Book Cards -->
+    <div class="row">
+        @foreach (var book in Model)
+        {
+            <div class="col-md-3 d-flex align-items-stretch">
+                <div class="card mb-4 shadow-sm">
+                    <img src="@book.CoverImage" class="card-img-top book-cover" alt="@book.Title Cover" style="height: 300px; object-fit: contain; background-color: #f8f9fa;" />
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title text-primary">@book.Title</h5>
+                        <p class="card-text"><strong>Author:</strong> @book.Author</p>
+                        <p class="card-text mb-2"><strong>Borrow Price:</strong> @book.BorrowPrice?.ToString("C") ?? "N/A"</p>
+                        <p class="card-text"><strong>Purchase Price:</strong> @book.PurchasePrice?.ToString("C") ?? "N/A"</p>
+                        <div class="mt-auto">
+                            <form asp-action="Purchase" asp-route-id="@book.Id" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-success w-100 mb-2">Purchase</button>
+                            </form>
+                            <form asp-action="Borrow" asp-route-id="@book.Id" method="post" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-warning w-100">Borrow</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    }
+        }
+    </div>
 </div>
