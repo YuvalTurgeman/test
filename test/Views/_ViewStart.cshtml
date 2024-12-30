@@ -1,3 +1,16 @@
 ﻿@{
-    Layout = "_Layout";
+    var userPermission = ViewData["UserPermission"]?.ToString() ?? "Guest";
+
+    switch (userPermission)
+    {
+        case "Admin":
+            Layout = "~/Views/Shared/_AdminLayout.cshtml";
+            break;
+        case "Customer":
+            Layout = "~/Views/Shared/_CustomerLayout.cshtml";
+            break;
+        default:
+            Layout = "~/Views/Shared/_NotLoggedInLayout.cshtml";
+            break;
+    }
 }
