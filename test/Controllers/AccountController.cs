@@ -1,4 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using test.Data;
 using test.Models;
@@ -15,31 +18,54 @@ namespace test.Controllers
         }
 
         // GET: Account/Login
-        public IActionResult Login()
+        public IActionResult Login(string returnUrl = null)
         {
+            ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
 
         // POST: Account/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(string email, string password)
+        public async Task<IActionResult> Login(string email, string password, string returnUrl = null)
         {
             var user = await _userDAL.GetUserByEmailAsync(email);
-            if (user == null)
+            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
             {
                 ViewData["LoginError"] = "Invalid email or password.";
                 return View();
             }
 
-            if (!BCrypt.Net.BCrypt.Verify(password, user.Password))
+            // Create claims
+            var claims = new List<Claim>
             {
-                ViewData["LoginError"] = "Invalid email or password.";
-                return View();
-            }
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Permission.ToString())
+            };
 
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
+            };
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties);
+
+            // Store also in session if needed
             HttpContext.Session.SetInt32("UserId", user.Id);
-            return RedirectToAction("ShowUser", new { id = user.Id });
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+        
+            return RedirectToAction("UserHomePage", "Books");
         }
 
         // GET: Account/Register
@@ -81,14 +107,30 @@ namespace test.Controllers
             user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
             user.Permission = UserPermission.Customer;
             
-
-            // Create the user
             var createdUser = await _userDAL.CreateUserAsync(user);
-            
 
-            // Set session
+            // Create claims and sign in
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, createdUser.Id.ToString()),
+                new Claim(ClaimTypes.Name, createdUser.Username),
+                new Claim(ClaimTypes.Email, createdUser.Email),
+                new Claim(ClaimTypes.Role, createdUser.Permission.ToString())
+            };
+
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
+            };
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties);
+
             HttpContext.Session.SetInt32("UserId", createdUser.Id);
-            HttpContext.Session.SetString("UserRole", createdUser.Permission.ToString());
 
             return RedirectToAction("UserHomePage", "Books");
         }
@@ -221,9 +263,12 @@ namespace test.Controllers
             return RedirectToAction("ShowUser", new { id });
         }
 
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
+            // Clear both cookie and session
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             HttpContext.Session.Clear();
+        
             return RedirectToAction("Login");
         }
 
