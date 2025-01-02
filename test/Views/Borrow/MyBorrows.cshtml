@@ -1,0 +1,69 @@
+@model IEnumerable<BorrowModel>
+
+<div class="container">
+    <h2>My Borrowed Books</h2>
+
+    @if (!Model.Any())
+    {
+        <p>You haven't borrowed any books yet.</p>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var borrow in Model)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        @if (!string.IsNullOrEmpty(borrow.Book.CoverImage))
+                        {
+                            <img src="@borrow.Book.CoverImage" class="card-img-top" alt="@borrow.Book.Title cover">
+                        }
+                        <div class="card-body">
+                            <h5 class="card-title">@borrow.Book.Title</h5>
+                            <p class="card-text">
+                                <small class="text-muted">Borrowed on: @borrow.StartDate.ToShortDateString()</small><br />
+                                <small class="text-muted">Due date: @borrow.EndDate.ToShortDateString()</small>
+                            </p>
+                            
+                            @if (!borrow.IsReturned)
+                            {
+                                if (borrow.EndDate < DateTime.UtcNow)
+                                {
+                                    <div class="alert alert-danger">
+                                        <small>Overdue by @((DateTime.UtcNow - borrow.EndDate).Days) days</small>
+                                    </div>
+                                }
+                                
+                                <form asp-action="ReturnBook" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@borrow.Id" />
+                                    <button type="submit" class="btn btn-primary">Return Book</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <div class="alert alert-success">
+                                    <small>Returned on: @borrow.ReturnedDate?.ToShortDateString()</small>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["Error"]
+        </div>
+    }
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Success"]
+        </div>
+    }
+</div>

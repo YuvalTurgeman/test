@@ -16,7 +16,7 @@ namespace test.Models
         public int ShoppingCartId { get; set; }
 
         [Required]
-        public bool IsBorrow { get; set; }  // true for borrow, false for buy
+        public bool IsBorrow { get; set; }
 
         [Required]
         public DateTime DateAdded { get; set; } = DateTime.UtcNow;
@@ -24,7 +24,11 @@ namespace test.Models
         public int? DiscountId { get; set; }
 
         [Range(0, 10000)]
-        public decimal? FinalPrice { get; set; }  // Price after discount
+        public decimal? FinalPrice { get; set; }
+
+        [Required]
+        [Range(1, 10)]
+        public int Quantity { get; set; } = 1;
 
         // Navigation properties
         [ForeignKey("BookId")]

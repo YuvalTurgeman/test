@@ -12,7 +12,7 @@ namespace test.Data
         public DbSet<BorrowModel> Borrows { get; set; }
         public DbSet<CartItemModel> CartItems { get; set; }
         public DbSet<ShoppingCartModel> ShoppingCarts { get; set; }
-
+        public DbSet<WaitingListModel> WaitingList { get; set; }
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
