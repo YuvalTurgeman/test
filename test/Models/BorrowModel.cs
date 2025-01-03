@@ -26,7 +26,6 @@ namespace test.Models
         [Required]
         public decimal BorrowPrice { get; set; }
 
-        // Optional actual return date
         public DateTime? ReturnedDate { get; set; }
 
         // Navigation properties
@@ -36,7 +35,12 @@ namespace test.Models
         [ForeignKey("UserId")]
         public virtual User User { get; set; }
 
-        // Many-to-many relationship with Purchases
         public virtual ICollection<PurchaseModel> Purchases { get; set; }
+        
+        public BorrowModel()
+        {
+            Purchases = new List<PurchaseModel>();
+            EndDate = StartDate.AddDays(30); // Default 30-day borrow period
+        }
     }
 }

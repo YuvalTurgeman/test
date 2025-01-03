@@ -91,5 +91,18 @@ namespace test.Data
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<ShoppingCartModel> GetByUserIdAsync(int userId)
+        {
+            return await _context.ShoppingCarts
+                .FirstOrDefaultAsync(c => c.UserId == userId);
+        }
+
+        public async Task CreateAsync(ShoppingCartModel cart)
+        {
+            await _context.ShoppingCarts.AddAsync(cart);
+            await _context.SaveChangesAsync();
+        }
+
     }
 }

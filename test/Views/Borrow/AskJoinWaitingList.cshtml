@@ -1,0 +1,25 @@
+@model test.ViewModels.WaitingListConfirmViewModel
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">No Available Copies</h5>
+            <p class="card-text">
+                There are currently no copies available of "@Model.BookTitle". 
+                Would you like to join the waiting list?
+            </p>
+            
+            <div class="d-flex gap-2">
+                <form asp-action="JoinWaitingList" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="bookId" value="@Model.BookId" />
+                    <button type="submit" class="btn btn-primary">Yes, Join Waiting List</button>
+                </form>
+                
+                <a asp-controller="Books" asp-action="UserHomePage" class="btn btn-secondary">
+                    No, Return to Books
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
