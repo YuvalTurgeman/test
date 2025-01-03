@@ -1,11 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+
 
 public class BaseController : Controller
 {
-    public BaseController()
-    {
-        // Populate ViewData with UserPermission from the session
-        var userPermission = HttpContext.Session.GetString("UserPermission") ?? "Guest";
-        ViewData["UserPermission"] = userPermission;
-    }
+    protected string UserPermission => HttpContext.Session.GetString("UserPermission") ?? "Guest";
+    protected int? UserId => HttpContext.Session.GetInt32("UserId");
 }

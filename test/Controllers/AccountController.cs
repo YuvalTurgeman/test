@@ -2,20 +2,26 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using test.Data;
 using test.Models;
-
+using test.Enums;
+using test.Services;
+    
 namespace test.Controllers
 {
-    public class AccountController : Controller
+    public class AccountController : BaseController
     {
         private readonly UserDAL _userDAL;
+        private readonly EmailService _emailService;
         
-        public AccountController(UserDAL userDAL)
+        public AccountController(UserDAL userDAL, EmailService emailService)
         {
             _userDAL = userDAL;
+            _emailService = emailService; // Assign the EmailService to a private field
         }
+
 
         // GET: Account/Login
         public IActionResult Login(string returnUrl = null)
@@ -23,8 +29,25 @@ namespace test.Controllers
             ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
+        
+        public async Task<IActionResult> TestEmail()
+        {
+            try
+            {
+                await _emailService.SendEmailAsync(
+                    "taltush2412@gmail.com", 
+                    "Test Subject", 
+                    "<p>This is a test email body.</p>"
+                );
+                return Content("Test email sent successfully!");
+            }
+            catch (Exception ex)
+            {
+                return Content($"Failed to send test email: {ex.Message}");
+            }
+        }
 
-        // POST: Account/Login
+        
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(string email, string password, string returnUrl = null)
@@ -36,7 +59,7 @@ namespace test.Controllers
                 return View();
             }
 
-            // Create claims
+            // Create claims for authentication
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -57,16 +80,21 @@ namespace test.Controllers
                 new ClaimsPrincipal(claimsIdentity),
                 authProperties);
 
-            // Store also in session if needed
+            // Explicitly store UserPermission in session
+            HttpContext.Session.SetString("UserPermission", user.Permission.ToString());
             HttpContext.Session.SetInt32("UserId", user.Id);
+
+            // Debugging: Ensure UserPermission is set
+            Console.WriteLine($"UserPermission in Session: {HttpContext.Session.GetString("UserPermission")}");
 
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
                 return Redirect(returnUrl);
             }
-        
+
             return RedirectToAction("UserHomePage", "Books");
         }
+
 
         // GET: Account/Register
         public IActionResult Register()
@@ -105,7 +133,7 @@ namespace test.Controllers
 
             // Hash password and set default permission
             user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
-            user.Permission = UserPermission.Customer;
+            user.Permission = Enums.UserPermission.Customer;
             
             var createdUser = await _userDAL.CreateUserAsync(user);
 
@@ -131,8 +159,15 @@ namespace test.Controllers
                 authProperties);
 
             HttpContext.Session.SetInt32("UserId", createdUser.Id);
+            
+            // Send welcome email
+            // string subject = "Welcome to DigiReads!";
+            // string body = $"<p>Dear {user.Username},</p><p>Thank you for registering at DigiReads!</p>";
+            // await _emailService.SendEmailAsync(user.Email, subject, body);
 
-            return RedirectToAction("UserHomePage", "Books");
+            _emailService.TestEmailAsync();
+            
+            return RedirectToAction("Login", "Account");
         }
         catch (Exception ex)
         {
@@ -263,17 +298,33 @@ namespace test.Controllers
             return RedirectToAction("ShowUser", new { id });
         }
 
+        // public async Task<IActionResult> Logout()
+        // {
+        //     // Clear both cookie and session
+        //     await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        //     HttpContext.Session.Clear();
+        //
+        //     return RedirectToAction("Login");
+        // }
+        
         public async Task<IActionResult> Logout()
         {
-            // Clear both cookie and session
+            // Clear authentication cookie
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            // Clear session
             HttpContext.Session.Clear();
-        
-            return RedirectToAction("Login");
+
+            // Debugging: Ensure session is cleared
+            Console.WriteLine("Session cleared on logout.");
+
+            return RedirectToAction("Login", "Account");
         }
+
 
         // Admin Actions
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AdminUserManagement()
         {
             var users = await _userDAL.GetAllUsersAsync();
@@ -281,6 +332,7 @@ namespace test.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public IActionResult AdminCreateUser()
         {
             return View();
@@ -288,6 +340,7 @@ namespace test.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AdminCreateUser(User user)
         {
             if (ModelState.IsValid)
@@ -306,6 +359,7 @@ namespace test.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> EditUser(int id)
         {
             var user = await _userDAL.GetUserByIdAsync(id);
@@ -318,6 +372,7 @@ namespace test.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> EditUser(int id, User updatedUser)
         {
             if (id != updatedUser.Id)
@@ -345,6 +400,7 @@ namespace test.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteUser(int id)
         {
             if (await _userDAL.DeleteUserAsync(id))
@@ -353,5 +409,18 @@ namespace test.Controllers
             }
             return NotFound();
         }
+        
+        // GET: Account/AccessDenied
+        [HttpGet]
+        public IActionResult AccessDenied()
+        {
+            var user = User.Identity?.Name ?? "Anonymous";
+            Console.WriteLine($"Access denied for user: {user}");
+            return View();
+        }
+    
+    
+ 
+
     }
 }

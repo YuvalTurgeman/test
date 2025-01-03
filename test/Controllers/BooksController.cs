@@ -1,10 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore; 
 using test.Data;
 using test.Models;
 
 [Route("Books")]
-public class BooksController : Controller
+public class BooksController : BaseController
 {
     private readonly BookDAL _bookDAL;
     private readonly PurchaseDAL _purchaseDAL;
@@ -18,6 +19,7 @@ public class BooksController : Controller
     }
 
     [HttpGet("AdminBooks")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> AdminBooks()
     {
         var books = await _bookDAL.GetAllBooksAsync();
@@ -25,6 +27,7 @@ public class BooksController : Controller
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public IActionResult Create()
     {
         return View();
@@ -32,6 +35,7 @@ public class BooksController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create(BookModel book)
     {
         Console.WriteLine($"Starting book creation process... Title: {book.Title}"); // Debug log
@@ -79,6 +83,7 @@ public class BooksController : Controller
     }
 
     [HttpGet("Delete/{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         var book = await _bookDAL.GetBookByIdAsync(id);
@@ -91,6 +96,7 @@ public class BooksController : Controller
 
     [HttpPost("Delete/{id:int}")]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         Console.WriteLine("trying to delete a book");
@@ -104,6 +110,7 @@ public class BooksController : Controller
     }
 
     [HttpGet("Edit/{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Edit(int id)
     {
         var book = await _bookDAL.GetBookByIdAsync(id);
@@ -116,6 +123,7 @@ public class BooksController : Controller
 
     [HttpPost("Edit/{id:int}")]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Edit(int id, BookModel book)
     {
         if (id != book.Id)

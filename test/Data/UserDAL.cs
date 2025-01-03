@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using test.Models;
 using test.Data;
+using test.Enums;
 
 namespace test.Data
 {
