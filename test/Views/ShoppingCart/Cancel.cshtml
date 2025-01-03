@@ -1,0 +1,10 @@
+@{
+    ViewBag.Title = "Payment Canceled";
+}
+
+<h1>@ViewBag.Message</h1>
+<p>It seems your payment was canceled. If this was a mistake, you can retry your payment from the cart.</p>
+
+<div style="margin-top: 20px;">
+    <a href="@Url.Action("UserHomePage", "Books")" class="btn btn-primary">Back to Home</a>
+</div>

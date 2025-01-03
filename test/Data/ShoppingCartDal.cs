@@ -136,4 +136,5 @@ namespace test.Data
         public int BuyItems { get; set; }
         public decimal TotalPrice { get; set; }
     }
+    
 }

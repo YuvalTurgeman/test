@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using test.Data;
-using Microsoft.AspNetCore.Authentication.Cookies; // Add this
+using Microsoft.AspNetCore.Authentication.Cookies;
+using test;
+using test.Services; // Add this
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +34,14 @@ builder.Services.AddScoped<BorrowDAL>();
 builder.Services.AddScoped<DiscountDAL>();
 builder.Services.AddScoped<ShoppingCartDAL>();
 builder.Services.AddScoped<CartItemDAL>();
+builder.Services.AddScoped<WaitingListDAL>(); 
+builder.Services.AddHttpContextAccessor();
+
+// Register PaymentService
+builder.Services.AddTransient<PaymentService>();
+
+// Configure Stripe
+builder.Services.Configure<StripeOptions>(builder.Configuration.GetSection("Stripe"));
 
 // Configure Session
 builder.Services.AddSession(options =>
@@ -41,25 +51,15 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-// Configure Kestrel to use HTTPS
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenLocalhost(5001, listenOptions =>
-    {
-        listenOptions.UseHttps(); // Use the development HTTPS certificate
-    });
-});
-
-
 var app = builder.Build();
 
 // Database initialization
-using (var scope = app.Services.CreateScope())
+/*using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     dbContext.Database.EnsureDeleted();
     dbContext.Database.EnsureCreated();
-}
+}*/
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -73,14 +73,13 @@ app.UseStaticFiles();
 app.UseRouting();
 
 // Important: UseAuthentication must come before UseAuthorization
-app.UseAuthentication(); // Add this line
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseSession();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Books}/{action=UserHomePage}/{id?}");
-
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();

@@ -1,4 +1,5 @@
-﻿// Shopping Cart Functions
+﻿/*
+// Shopping Cart Functions
 const ShoppingCart = {
     // Update cart count in navigation
     updateCartCount: function(count) {
@@ -175,4 +176,4 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof initialCartCount !== 'undefined') {
         ShoppingCart.updateCartCount(initialCartCount);
     }
-});
+});*/

@@ -15,6 +15,21 @@ namespace test.Data
         // Create
         public async Task<BorrowModel> CreateBorrowAsync(BorrowModel borrow)
         {
+            // Validate borrow limit
+            var activeUserBorrows = await _context.Borrows
+                .CountAsync(b => b.UserId == borrow.UserId && !b.IsReturned);
+
+            if (activeUserBorrows >= 3)
+                throw new InvalidOperationException("User has reached maximum borrow limit");
+
+            // Validate book availability
+            var activeBookBorrows = await _context.Borrows
+                .CountAsync(b => b.BookId == borrow.BookId && !b.IsReturned);
+
+            var book = await _context.Books.FindAsync(borrow.BookId);
+            if (book == null || activeBookBorrows >= book.TotalCopies)
+                throw new InvalidOperationException("Book is not available for borrowing");
+
             await _context.Borrows.AddAsync(borrow);
             await _context.SaveChangesAsync();
             return borrow;
@@ -43,6 +58,14 @@ namespace test.Data
             return await _context.Borrows
                 .Include(b => b.Book)
                 .Where(b => b.UserId == userId)
+                .ToListAsync();
+        }
+
+        public async Task<List<BorrowModel>> GetActiveUserBorrowsAsync(int userId)
+        {
+            return await _context.Borrows
+                .Include(b => b.Book)
+                .Where(b => b.UserId == userId && !b.IsReturned)
                 .ToListAsync();
         }
 
@@ -80,12 +103,14 @@ namespace test.Data
             return borrow;
         }
 
-        public async Task<BorrowModel> MarkAsReturnedAsync(int id)
+        // Return book
+        public async Task<BorrowModel> ReturnBookAsync(int id)
         {
             var borrow = await _context.Borrows.FindAsync(id);
             if (borrow != null)
             {
                 borrow.IsReturned = true;
+                borrow.ReturnedDate = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
             }
             return borrow;
@@ -102,13 +127,14 @@ namespace test.Data
             await _context.SaveChangesAsync();
             return true;
         }
-        // Add these methods to BorrowDAL
+
+        // Validation methods
         public async Task<bool> HasActiveBookBorrowAsync(int userId, int bookId)
         {
             return await _context.Borrows
                 .AnyAsync(b => b.UserId == userId && 
-                               b.BookId == bookId && 
-                               !b.IsReturned);
+                              b.BookId == bookId && 
+                              !b.IsReturned);
         }
 
         public async Task<int> GetActiveBookBorrowsCountAsync(int bookId)
@@ -116,19 +142,12 @@ namespace test.Data
             return await _context.Borrows
                 .CountAsync(b => b.BookId == bookId && !b.IsReturned);
         }
-        
 
-// Add method for returning book with date
-        public async Task<BorrowModel> ReturnBookAsync(int id)
+        public async Task<bool> HasReachedBorrowLimitAsync(int userId)
         {
-            var borrow = await _context.Borrows.FindAsync(id);
-            if (borrow != null)
-            {
-                borrow.IsReturned = true;
-                borrow.ReturnedDate = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-            }
-            return borrow;
+            var activeCount = await _context.Borrows
+                .CountAsync(b => b.UserId == userId && !b.IsReturned);
+            return activeCount >= 3;
         }
     }
 }
