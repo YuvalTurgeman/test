@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using test.Enums;
 
 namespace test.Models
 {
@@ -29,10 +30,5 @@ namespace test.Models
         public virtual ICollection<PurchaseModel> Purchases { get; set; }
         public virtual ICollection<BorrowModel> Borrows { get; set; }
     }
-
-    public enum UserPermission
-    {
-        Admin,
-        Customer
-    }
+    
 }

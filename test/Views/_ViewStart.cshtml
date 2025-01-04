@@ -1,5 +1,8 @@
-﻿@{
-    var userPermission = ViewData["UserPermission"]?.ToString() ?? "Guest";
+﻿@using Microsoft.AspNetCore.Http;
+
+@{
+    var userPermission = Context?.Session?.GetString("UserPermission") ?? "Guest";
+    Console.WriteLine($"Current UserPermission: {userPermission}");
 
     switch (userPermission)
     {

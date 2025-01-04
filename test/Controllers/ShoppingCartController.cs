@@ -9,7 +9,7 @@ using test.Services;
 namespace test.Controllers
 {
     [Authorize]
-    public class ShoppingCartController : Controller
+    public class ShoppingCartController : BaseController
     {
         private readonly ShoppingCartDAL _cartDAL;
         private readonly CartItemDAL _cartItemDAL;
