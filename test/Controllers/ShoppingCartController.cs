@@ -7,6 +7,7 @@ using test.Data;
 using test.Models;
 using test.Services;
 
+
 namespace test.Controllers
 {
     [Authorize]
@@ -38,6 +39,7 @@ namespace test.Controllers
             _emailService = emailService;  
         }
 
+        [Authorize(Roles = "Customer")]
         public async Task<IActionResult> Index()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
@@ -46,9 +48,75 @@ namespace test.Controllers
         }
 
         [HttpPost]
-    [ValidateAntiForgeryToken]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Customer")]
+        public async Task<IActionResult> BuyNow(int bookId)
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var book = await _bookDAL.GetBookByIdAsync(bookId);
+
+                if (book == null)
+                {
+                    TempData["Error"] = "Book not found.";
+                    return RedirectToAction("UserHomePage", "Books");
+                }
+
+                // Prepare Stripe Checkout Line Items
+                var lineItems = new List<SessionLineItemOptions>
+                {
+                    new SessionLineItemOptions
+                    {
+                        PriceData = new SessionLineItemPriceDataOptions
+                        {
+                            Currency = "usd",
+                            ProductData = new SessionLineItemPriceDataProductDataOptions
+                            {
+                                Name = book.Title
+                            },
+                            UnitAmount = Convert.ToInt64(book.PurchasePrice * 100) // Stripe accepts amounts in cents
+                        },
+                        Quantity = 1
+                    }
+                };
+
+                // Create Stripe Checkout Session
+                var sessionUrl = await _paymentService.CreateCheckoutSessionAsync(
+                    lineItems,
+                    "https://localhost:7151/ShoppingCart/Success",
+                    "https://localhost:7151/ShoppingCart/Cancel"
+                );
+
+                // Redirect the user to Stripe Checkout Page
+                return Redirect(sessionUrl);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in BuyNow: {ex.Message}");
+                TempData["Error"] = "Failed to initiate the purchase.";
+                return RedirectToAction("UserHomePage", "Books");
+            }
+        }
+
+        
+        [HttpPost]
+        [Authorize(Roles = "Customer")]
+    [ValidateAntiForgeryToken] 
     public async Task<IActionResult> AddToCart(int bookId, bool isBorrow)
     {
+        
+        if (!User.Identity.IsAuthenticated)
+        {
+            Console.WriteLine("User is not authenticated");
+            return RedirectToAction("Login", "Account");
+        }
+        else
+        {
+            Console.WriteLine("User is authenticated: " + User.Identity.Name);
+        }
+
+        
         try
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
@@ -118,6 +186,7 @@ namespace test.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Customer")]
         public async Task<IActionResult> RemoveFromCart(int id)
         {
             try
@@ -154,6 +223,7 @@ namespace test.Controllers
         
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Customer")]
         public async Task<IActionResult> UpdateCart(Dictionary<int, CartItemModel> updates)
         {
             try
@@ -209,6 +279,7 @@ namespace test.Controllers
         
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Customer")]
         public async Task<IActionResult> UpdateQuantity(int id, int quantity)
         {
             try
@@ -253,6 +324,7 @@ namespace test.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Customer")]
         public async Task<IActionResult> CreateCheckoutSession()
         {
             try
@@ -307,7 +379,8 @@ namespace test.Controllers
                 return BadRequest(new { message = "Failed to create checkout session." });
             }
         }
-
+    
+        [Authorize(Roles = "Customer")]
     public async Task<IActionResult> Success()
 {
     try

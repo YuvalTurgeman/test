@@ -144,66 +144,90 @@ public class BooksController : Controller
     }
 
     [HttpGet("UserHomePage")]
-    public async Task<IActionResult> UserHomePage(string genre = null, decimal? minPrice = null, decimal? maxPrice = null)
+    public async Task<IActionResult> UserHomePage(
+        string searchTitle = null,
+        string searchAuthor = null,
+        int? searchYear = null,
+        bool? discountedOnly = null,
+        string sortBy = null,
+        bool ascending = true)
     {
-        var books = await _bookDAL.GetFilteredBooksAsync(genre, minPrice, maxPrice);
+        // Call the updated DAL method with all parameters
+        var books = await _bookDAL.GetBooksAsync(
+            searchTitle: searchTitle,
+            searchAuthor: searchAuthor,
+            searchYear: searchYear,
+            discountedOnly: discountedOnly,
+            sortBy: sortBy,
+            ascending: ascending
+        );
+
+        // Pass filter and sort parameters back to the view
+        ViewData["SearchTitle"] = searchTitle;
+        ViewData["SearchAuthor"] = searchAuthor;
+        ViewData["Year"] = searchYear;
+        ViewData["Discounted"] = discountedOnly;
+        ViewData["SortBy"] = sortBy;
+        ViewData["SortOrder"] = ascending ? "asc" : "desc";
+
         return View(books);
     }
 
-    [HttpPost("Purchase/{id:int}")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Purchase(int id)
-    {
-        var userId = HttpContext.Session.GetInt32("UserId");
-        if (!userId.HasValue)
-        {
-            return RedirectToAction("Login", "Account");
-        }
 
-        var book = await _bookDAL.GetBookByIdAsync(id);
-        if (book == null)
-        {
-            return NotFound();
-        }
-
-        var purchase = new PurchaseModel
-        {
-            BookId = book.Id,
-            UserId = userId.Value,
-            PurchaseDate = DateTime.UtcNow,
-            FinalPrice = book.PurchasePrice ?? 0
-        };
-
-        await _purchaseDAL.CreatePurchaseAsync(purchase);
-        return RedirectToAction("UserHomePage");
-    }
-
-    [HttpPost("Borrow/{id:int}")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Borrow(int id)
-    {
-        var userId = HttpContext.Session.GetInt32("UserId");
-        if (!userId.HasValue)
-        {
-            return RedirectToAction("Login", "Account");
-        }
-
-        var book = await _bookDAL.GetBookByIdAsync(id);
-        if (book == null)
-        {
-            return NotFound();
-        }
-
-        var borrow = new BorrowModel
-        {
-            BookId = book.Id,
-            UserId = userId.Value,
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddDays(30), // Default borrow period of 14 day
-            BorrowPrice = book.BorrowPrice ?? 0
-        };
-
-        await _borrowDAL.CreateBorrowAsync(borrow);
-        return RedirectToAction("UserHomePage");
-    }
+    // [HttpPost("Purchase/{id:int}")]
+    // [ValidateAntiForgeryToken]
+    // public async Task<IActionResult> Purchase(int id)
+    // {
+    //     var userId = HttpContext.Session.GetInt32("UserId");
+    //     if (!userId.HasValue)
+    //     {
+    //         return RedirectToAction("Login", "Account");
+    //     }
+    //
+    //     var book = await _bookDAL.GetBookByIdAsync(id);
+    //     if (book == null)
+    //     {
+    //         return NotFound();
+    //     }
+    //
+    //     var purchase = new PurchaseModel
+    //     {
+    //         BookId = book.Id,
+    //         UserId = userId.Value,
+    //         PurchaseDate = DateTime.UtcNow,
+    //         FinalPrice = book.PurchasePrice ?? 0
+    //     };
+    //
+    //     await _purchaseDAL.CreatePurchaseAsync(purchase);
+    //     return RedirectToAction("UserHomePage");
+    // }
+    //
+    // [HttpPost("Borrow/{id:int}")]
+    // [ValidateAntiForgeryToken]
+    // public async Task<IActionResult> Borrow(int id)
+    // {
+    //     var userId = HttpContext.Session.GetInt32("UserId");
+    //     if (!userId.HasValue)
+    //     {
+    //         return RedirectToAction("Login", "Account");
+    //     }
+    //
+    //     var book = await _bookDAL.GetBookByIdAsync(id);
+    //     if (book == null)
+    //     {
+    //         return NotFound();
+    //     }
+    //
+    //     var borrow = new BorrowModel
+    //     {
+    //         BookId = book.Id,
+    //         UserId = userId.Value,
+    //         StartDate = DateTime.UtcNow,
+    //         EndDate = DateTime.UtcNow.AddDays(30), // Default borrow period of 14 day
+    //         BorrowPrice = book.BorrowPrice ?? 0
+    //     };
+    //
+    //     await _borrowDAL.CreateBorrowAsync(borrow);
+    //     return RedirectToAction("UserHomePage");
+    // }
 }
