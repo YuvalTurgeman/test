@@ -44,28 +44,40 @@ namespace test.Data
             return await _context.Books.AnyAsync(b => b.Title == title && b.Author == author);
         }
 
-        // Get filtered books
-        public async Task<List<BookModel>> GetFilteredBooksAsync(
-            string genre = null, 
-            decimal? minPrice = null, 
-            decimal? maxPrice = null, 
-            string searchTerm = null)
+        // Filter and Sort
+        public async Task<List<BookModel>> GetBooksAsync(
+            string searchTitle = null,
+            string searchAuthor = null,
+            int? searchYear = null,
+            bool? discountedOnly = null,
+            string sortBy = null,
+            bool ascending = true)
         {
             var query = _context.Books.AsQueryable();
 
-            if (!string.IsNullOrEmpty(genre))
-                query = query.Where(b => b.Genre == genre);
-            
-            if (minPrice.HasValue)
-                query = query.Where(b => b.PurchasePrice >= minPrice.Value || b.BorrowPrice >= minPrice.Value);
-            
-            if (maxPrice.HasValue)
-                query = query.Where(b => b.PurchasePrice <= maxPrice.Value || b.BorrowPrice <= maxPrice.Value);
-            
-            if (!string.IsNullOrEmpty(searchTerm))
-                query = query.Where(b => 
-                    EF.Functions.Like(b.Title, $"%{searchTerm}%") || 
-                    EF.Functions.Like(b.Author, $"%{searchTerm}%"));
+            // Filter by title
+            if (!string.IsNullOrEmpty(searchTitle))
+                query = query.Where(b => EF.Functions.Like(b.Title, $"%{searchTitle}%"));
+
+            // Filter by author
+            if (!string.IsNullOrEmpty(searchAuthor))
+                query = query.Where(b => EF.Functions.Like(b.Author, $"%{searchAuthor}%"));
+
+            // Filter by year published
+            if (searchYear.HasValue)
+                query = query.Where(b => b.YearPublished == searchYear.Value);
+
+            // Filter by discounted books
+            if (discountedOnly.HasValue && discountedOnly.Value)
+                query = query.Where(b => b.Discounts.Any(d => d.IsActive));
+
+            // Sorting
+            query = sortBy switch
+            {
+                "PurchasePrice" => ascending ? query.OrderBy(b => b.PurchasePrice) : query.OrderByDescending(b => b.PurchasePrice),
+                "BorrowPrice" => ascending ? query.OrderBy(b => b.BorrowPrice) : query.OrderByDescending(b => b.BorrowPrice),
+                _ => query // No sorting
+            };
 
             return await query
                 .Include(b => b.Discounts)
@@ -98,7 +110,7 @@ namespace test.Data
         public async Task<bool> IsBookAvailableForBorrowAsync(int bookId)
         {
             var book = await GetBookByIdAsync(bookId);
-            if (book == null || book.IsBuyOnly) 
+            if (book == null || book.IsBuyOnly)
                 return false;
 
             var activeBorrows = await _context.Borrows
@@ -110,7 +122,7 @@ namespace test.Data
         public async Task<int> GetAvailableCopiesAsync(int bookId)
         {
             var book = await GetBookByIdAsync(bookId);
-            if (book == null) 
+            if (book == null)
                 return 0;
 
             var activeBorrows = await _context.Borrows
@@ -126,7 +138,7 @@ namespace test.Data
             {
                 var activeBorrows = await _context.Borrows
                     .CountAsync(b => b.BookId == bookId && !b.IsReturned);
-                
+
                 book.AvailableCopies = Math.Max(0, book.TotalCopies - activeBorrows);
                 await UpdateBookAsync(book);
             }

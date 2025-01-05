@@ -6,6 +6,7 @@ using test.ViewModels;
 using System.Security.Claims;
 using test.Services;
 
+
 namespace test.Controllers
 {
     [Authorize]
@@ -39,6 +40,7 @@ namespace test.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Customer")]
         public async Task<IActionResult> InitiateBorrow(int id)
         {
             try
@@ -99,6 +101,7 @@ namespace test.Controllers
             }
         }
 
+        [Authorize(Roles = "Customer")]
         public async Task<IActionResult> AskJoinWaitingList()
         {
             var bookId = TempData["WaitingListBookId"] as int?;
@@ -153,6 +156,7 @@ namespace test.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Customer")]
         public async Task<IActionResult> JoinWaitingList(int bookId)
         {
             try
@@ -176,7 +180,8 @@ namespace test.Controllers
 
             return RedirectToAction("UserHomePage", "Books");
         }
-
+        
+        [Authorize(Roles = "Customer")]
         public async Task<IActionResult> MyBorrows()
         {
             try
@@ -212,7 +217,10 @@ namespace test.Controllers
         }
         
         [HttpPost]
+
+
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Customer")]
     public async Task<IActionResult> ReturnBook(int id)
     {
         try
