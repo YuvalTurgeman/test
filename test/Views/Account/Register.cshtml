@@ -34,11 +34,21 @@
                             <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" />
                         </div>
 
+                        @* <!--Temporary: Permission Dropdown --> *@
+                        @* <div class="mb-3"> *@
+                        @*     <label for="Permission" class="form-label">User Permission</label> *@
+                        @*     <select id="Permission" name="Permission" class="form-select"> *@
+                        @*         <option value="Customer">Customer</option> *@
+                        @*         <option value="Admin">Admin</option> *@
+                        @*     </select> *@
+                        @* </div> *@
+                        @* <!-- End Temporary --> *@
+
                         @if (ViewData["ErrorMessage"] != null)
                         {
-                            <div class="alert alert-danger">
-                                @ViewData["ErrorMessage"]
-                            </div>
+                        <div class="alert alert-danger">
+                            @ViewData["ErrorMessage"]
+                        </div>
                         }
 
                         <div class="d-grid gap-2">
