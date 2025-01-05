@@ -9,7 +9,7 @@
     @if (!Model.CartItems.Any())
     {
         <div class="alert alert-info">
-            Your cart is empty. <a asp-controller="Book" asp-action="Index">Browse books</a>
+            Your cart is empty. <a asp-controller="Books" asp-action="UserHomePage">Browse books</a>
         </div>
     }
     else

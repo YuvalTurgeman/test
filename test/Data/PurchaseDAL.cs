@@ -42,9 +42,9 @@ namespace test.Data
         public async Task<List<PurchaseModel>> GetUserPurchasesAsync(int userId)
         {
             return await _context.Purchases
-                .Include(p => p.Book)
-                .Include(p => p.Discount)
+                .Include(p => p.Book)  
                 .Where(p => p.UserId == userId)
+                .OrderByDescending(p => p.PurchaseDate)
                 .ToListAsync();
         }
 

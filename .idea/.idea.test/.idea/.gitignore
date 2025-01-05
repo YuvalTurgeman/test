@@ -12,5 +12,6 @@
 /dataSources/
 /dataSources.local.xml
 
-# Ignore appsettings.json
-appsettings.json
+appsettings*.json
+lanuchSettings.json
+
