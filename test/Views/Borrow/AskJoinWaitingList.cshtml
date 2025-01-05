@@ -5,17 +5,39 @@
         <div class="card-body">
             <h5 class="card-title">No Available Copies</h5>
             <p class="card-text">
-                There are currently no copies available of "@Model.BookTitle". 
-                Would you like to join the waiting list?
+                There are currently no copies available of "@Model.BookTitle".
             </p>
-            
+
+            <div class="alert alert-info">
+                <h6 class="mb-3">Waiting List Information:</h6>
+                <div class="mb-2">
+                    <i class="bi bi-people-fill me-2"></i>
+                    Current queue: <strong>@Model.PeopleInQueue @(Model.PeopleInQueue == 1 ? "person" : "people")</strong>
+                </div>
+                <div class="mb-2">
+                    <i class="bi bi-book-fill me-2"></i>
+                    Total copies available for borrowing: <strong>@Model.TotalCopies</strong>
+                </div>
+                <div class="mb-2">
+                    <i class="bi bi-clock-fill me-2"></i>
+                    Estimated wait time: <strong>@Model.EstimatedWaitDays @(Model.EstimatedWaitDays == 1 ? "day" : "days")</strong>
+                </div>
+                @if (Model.EstimatedAvailabilityDate.HasValue)
+                {
+                    <div>
+                        <i class="bi bi-calendar-check me-2"></i>
+                        Estimated availability: <strong>@Model.EstimatedAvailabilityDate.Value.ToString("MMMM dd, yyyy")</strong>
+                    </div>
+                }
+            </div>
+
             <div class="d-flex gap-2">
                 <form asp-action="JoinWaitingList" method="post">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="bookId" value="@Model.BookId" />
                     <button type="submit" class="btn btn-primary">Yes, Join Waiting List</button>
                 </form>
-                
+
                 <a asp-controller="Books" asp-action="UserHomePage" class="btn btn-secondary">
                     No, Return to Books
                 </a>

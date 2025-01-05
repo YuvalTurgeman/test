@@ -29,5 +29,7 @@ namespace test.Models
 
         [ForeignKey("UserId")]
         public virtual User User { get; set; }
+        // Add this property to WaitingListModel.cs
+        public bool IsHidden { get; set; } = false;
     }
 }

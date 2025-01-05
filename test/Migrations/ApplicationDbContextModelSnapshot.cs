@@ -22,6 +22,21 @@ namespace test.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("BorrowModelPurchaseModel", b =>
+                {
+                    b.Property<int>("BorrowsId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PurchasesId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("BorrowsId", "PurchasesId");
+
+                    b.HasIndex("PurchasesId");
+
+                    b.ToTable("BorrowModelPurchaseModel");
+                });
+
             modelBuilder.Entity("test.Models.BookModel", b =>
                 {
                     b.Property<int>("Id")
@@ -39,6 +54,9 @@ namespace test.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int>("AvailableCopies")
+                        .HasColumnType("integer");
 
                     b.Property<decimal?>("BorrowPrice")
                         .HasColumnType("numeric");
@@ -74,15 +92,22 @@ namespace test.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<int>("TotalCopies")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("YearPublished")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Author");
+
+                    b.HasIndex("Title");
+
                     b.ToTable("Books");
                 });
 
-            modelBuilder.Entity("test.Models.ReviewModel", b =>
+            modelBuilder.Entity("test.Models.BorrowModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -93,25 +118,34 @@ namespace test.Migrations
                     b.Property<int>("BookId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Comment")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<decimal>("BorrowPrice")
+                        .HasColumnType("numeric");
 
-                    b.Property<DateTime>("CreatedDate")
+                    b.Property<DateTime>("EndDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("Rating")
-                        .HasColumnType("integer");
+                    b.Property<bool>("IsReturned")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ReturnedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Reviews");
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("BookId", "UserId", "IsReturned");
+
+                    b.ToTable("Borrows");
                 });
 
-            modelBuilder.Entity("test.Models.TransactionModel", b =>
+            modelBuilder.Entity("test.Models.CartItemModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -119,25 +153,349 @@ namespace test.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("AmountPaid")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<int>("BookId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("DateAdded")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DiscountId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("FinalPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsBorrow")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ShoppingCartId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookId");
+
+                    b.HasIndex("DiscountId");
+
+                    b.HasIndex("ShoppingCartId", "BookId");
+
+                    b.ToTable("CartItems");
+                });
+
+            modelBuilder.Entity("test.Models.DiscountModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("BookId")
                         .HasColumnType("integer");
 
-                    b.Property<DateTime>("TransactionDate")
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("EndDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookId", "StartDate", "EndDate");
+
+                    b.ToTable("Discounts");
+                });
+
+            modelBuilder.Entity("test.Models.PurchaseModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("DiscountId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("FinalPrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("PurchaseDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Transactions");
+                    b.HasIndex("DiscountId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("BookId", "UserId");
+
+                    b.ToTable("Purchases");
+                });
+
+            modelBuilder.Entity("test.Models.ShoppingCartModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("ShoppingCarts");
+                });
+
+            modelBuilder.Entity("test.Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Permission")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("users");
+                });
+
+            modelBuilder.Entity("test.Models.WaitingListModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsNotified")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("JoinDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("WaitingList");
+                });
+
+            modelBuilder.Entity("BorrowModelPurchaseModel", b =>
+                {
+                    b.HasOne("test.Models.BorrowModel", null)
+                        .WithMany()
+                        .HasForeignKey("BorrowsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("test.Models.PurchaseModel", null)
+                        .WithMany()
+                        .HasForeignKey("PurchasesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("test.Models.BorrowModel", b =>
+                {
+                    b.HasOne("test.Models.BookModel", "Book")
+                        .WithMany("Borrows")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("test.Models.User", "User")
+                        .WithMany("Borrows")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("test.Models.CartItemModel", b =>
+                {
+                    b.HasOne("test.Models.BookModel", "Book")
+                        .WithMany()
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("test.Models.DiscountModel", "Discount")
+                        .WithMany()
+                        .HasForeignKey("DiscountId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("test.Models.ShoppingCartModel", "ShoppingCart")
+                        .WithMany("CartItems")
+                        .HasForeignKey("ShoppingCartId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+
+                    b.Navigation("Discount");
+
+                    b.Navigation("ShoppingCart");
+                });
+
+            modelBuilder.Entity("test.Models.DiscountModel", b =>
+                {
+                    b.HasOne("test.Models.BookModel", "Book")
+                        .WithMany("Discounts")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+                });
+
+            modelBuilder.Entity("test.Models.PurchaseModel", b =>
+                {
+                    b.HasOne("test.Models.BookModel", "Book")
+                        .WithMany("Purchases")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("test.Models.DiscountModel", "Discount")
+                        .WithMany()
+                        .HasForeignKey("DiscountId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("test.Models.User", "User")
+                        .WithMany("Purchases")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+
+                    b.Navigation("Discount");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("test.Models.ShoppingCartModel", b =>
+                {
+                    b.HasOne("test.Models.User", "User")
+                        .WithOne()
+                        .HasForeignKey("test.Models.ShoppingCartModel", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("test.Models.WaitingListModel", b =>
+                {
+                    b.HasOne("test.Models.BookModel", "Book")
+                        .WithMany("WaitingList")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("test.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("test.Models.BookModel", b =>
+                {
+                    b.Navigation("Borrows");
+
+                    b.Navigation("Discounts");
+
+                    b.Navigation("Purchases");
+
+                    b.Navigation("WaitingList");
+                });
+
+            modelBuilder.Entity("test.Models.ShoppingCartModel", b =>
+                {
+                    b.Navigation("CartItems");
+                });
+
+            modelBuilder.Entity("test.Models.User", b =>
+                {
+                    b.Navigation("Borrows");
+
+                    b.Navigation("Purchases");
                 });
 #pragma warning restore 612, 618
         }

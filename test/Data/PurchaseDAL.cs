@@ -12,87 +12,209 @@ namespace test.Data
             _context = context;
         }
 
-        // Create
         public async Task<PurchaseModel> CreatePurchaseAsync(PurchaseModel purchase)
         {
-            await _context.Purchases.AddAsync(purchase);
-            await _context.SaveChangesAsync();
-            return purchase;
+            try
+            {
+                Console.WriteLine($"Creating purchase record for BookId: {purchase.BookId}, UserId: {purchase.UserId}");
+                
+                // Check if the book and user exist
+                var book = await _context.Books.FindAsync(purchase.BookId);
+                var user = await _context.users.FindAsync(purchase.UserId);
+                
+                if (book == null || user == null)
+                {
+                    throw new InvalidOperationException("Invalid book or user ID");
+                }
+
+                await _context.Purchases.AddAsync(purchase);
+                await _context.SaveChangesAsync();
+                
+                Console.WriteLine($"Successfully created purchase with ID: {purchase.Id}");
+                return purchase;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in CreatePurchaseAsync: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw;
+            }
         }
 
-        // Read
         public async Task<PurchaseModel> GetPurchaseByIdAsync(int id)
         {
-            return await _context.Purchases
-                .Include(p => p.Book)
-                .Include(p => p.User)
-                .Include(p => p.Discount)
-                .FirstOrDefaultAsync(p => p.Id == id);
+            try
+            {
+                return await _context.Purchases
+                    .Include(p => p.Book)
+                    .Include(p => p.User)
+                    .Include(p => p.Discount)
+                    .FirstOrDefaultAsync(p => p.Id == id);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetPurchaseByIdAsync: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<List<PurchaseModel>> GetAllPurchasesAsync()
         {
-            return await _context.Purchases
-                .Include(p => p.Book)
-                .Include(p => p.User)
-                .Include(p => p.Discount)
-                .ToListAsync();
+            try
+            {
+                return await _context.Purchases
+                    .Include(p => p.Book)
+                    .Include(p => p.User)
+                    .Include(p => p.Discount)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetAllPurchasesAsync: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<List<PurchaseModel>> GetUserPurchasesAsync(int userId)
         {
-            return await _context.Purchases
-                .Include(p => p.Book)  
-                .Where(p => p.UserId == userId)
-                .OrderByDescending(p => p.PurchaseDate)
-                .ToListAsync();
+            try
+            {
+                Console.WriteLine($"Getting purchases for user {userId}");
+
+                // Query to get non-hidden purchases with books included
+                var purchases = await _context.Purchases
+                    .Include(p => p.Book)
+                    .Where(p => p.UserId == userId && !p.IsHidden)
+                    .OrderByDescending(p => p.PurchaseDate)
+                    .ToListAsync();
+
+                Console.WriteLine($"Found {purchases.Count} active purchases for user");
+                foreach (var purchase in purchases)
+                {
+                    Console.WriteLine($"Purchase ID: {purchase.Id}, Book: {purchase.Book?.Title}, Date: {purchase.PurchaseDate}");
+                }
+
+                return purchases;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetUserPurchasesAsync: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw;
+            }
         }
 
         public async Task<List<PurchaseModel>> GetBookPurchasesAsync(int bookId)
         {
-            return await _context.Purchases
-                .Include(p => p.User)
-                .Include(p => p.Discount)
-                .Where(p => p.BookId == bookId)
-                .ToListAsync();
+            try
+            {
+                return await _context.Purchases
+                    .Include(p => p.User)
+                    .Include(p => p.Discount)
+                    .Where(p => p.BookId == bookId)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetBookPurchasesAsync: {ex.Message}");
+                throw;
+            }
         }
 
-        // Update
-        public async Task<PurchaseModel> UpdatePurchaseAsync(PurchaseModel purchase)
-        {
-            _context.Purchases.Update(purchase);
-            await _context.SaveChangesAsync();
-            return purchase;
-        }
-
-        // Delete
-        public async Task<bool> DeletePurchaseAsync(int id)
-        {
-            var purchase = await _context.Purchases.FindAsync(id);
-            if (purchase == null)
-                return false;
-
-            _context.Purchases.Remove(purchase);
-            await _context.SaveChangesAsync();
-            return true;
-        }
-        // Add these methods to PurchaseDAL
         public async Task<List<PurchaseModel>> GetRecentPurchasesAsync(int count = 10)
         {
-            return await _context.Purchases
-                .Include(p => p.Book)
-                .Include(p => p.User)
-                .Include(p => p.Discount)
-                .OrderByDescending(p => p.PurchaseDate)
-                .Take(count)
-                .ToListAsync();
+            try
+            {
+                return await _context.Purchases
+                    .Include(p => p.Book)
+                    .Include(p => p.User)
+                    .Include(p => p.Discount)
+                    .Where(p => !p.IsHidden)
+                    .OrderByDescending(p => p.PurchaseDate)
+                    .Take(count)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetRecentPurchasesAsync: {ex.Message}");
+                throw;
+            }
         }
 
-// Add validation method
-        public async Task<bool> IsPurchaseValidAsync(int bookId, int userId)
+        public async Task<PurchaseModel> UpdatePurchaseAsync(PurchaseModel purchase)
         {
-            var book = await _context.Books.FindAsync(bookId);
-            return book != null && !book.IsBuyOnly;
+            try
+            {
+                Console.WriteLine($"Updating purchase {purchase.Id}");
+                _context.Purchases.Update(purchase);
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"Successfully updated purchase {purchase.Id}");
+                return purchase;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in UpdatePurchaseAsync: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<bool> DeletePurchaseAsync(int id)
+        {
+            try
+            {
+                var purchase = await _context.Purchases.FindAsync(id);
+                if (purchase == null)
+                {
+                    return false;
+                }
+
+                _context.Purchases.Remove(purchase);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in DeletePurchaseAsync: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<bool> HidePurchaseAsync(int id)
+        {
+            try
+            {
+                var purchase = await _context.Purchases.FindAsync(id);
+                if (purchase == null)
+                {
+                    return false;
+                }
+
+                purchase.IsHidden = true;
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"Successfully hidden purchase {id}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in HidePurchaseAsync: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<bool> HasUserPurchasedBookAsync(int userId, int bookId)
+        {
+            try
+            {
+                return await _context.Purchases
+                    .AnyAsync(p => p.UserId == userId && 
+                                 p.BookId == bookId && 
+                                 !p.IsHidden);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in HasUserPurchasedBookAsync: {ex.Message}");
+                throw;
+            }
         }
     }
 }
