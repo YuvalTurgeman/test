@@ -164,8 +164,9 @@
                         <h5 class="card-title">@book.Title</h5>
                         <p class="card-text text-muted mb-2">by @book.Author</p>
                         <p class="card-text text-muted">Published: @book.YearPublished</p>
-                        <p class="card-text text-muted">Price: @(book.PurchasePrice.HasValue ? book.PurchasePrice.Value.ToString("C") : "N/A")</p>
-
+                        <p class="card-text text-muted">Purchase Price: @(book.PurchasePrice.HasValue ? book.PurchasePrice.Value.ToString("C") : "N/A")</p>
+                        <p class="card-text text-muted">Borrow Price: @(book.BorrowPrice.HasValue ? book.BorrowPrice.Value.ToString("C") : "N/A")</p>
+                        
                         <div class="d-grid gap-2 mt-auto">
                             <!-- Add to Cart -->
                             <form asp-controller="ShoppingCart" asp-action="AddToCart" method="post" class="w-100">

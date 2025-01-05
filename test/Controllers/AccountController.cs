@@ -79,6 +79,7 @@ namespace test.Controllers
 
 
         // GET: Account/Register
+        [Authorize(Roles = "Guest")]
         public IActionResult Register()
         {
             return View();
