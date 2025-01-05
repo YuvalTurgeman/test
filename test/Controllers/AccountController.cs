@@ -30,28 +30,6 @@ namespace test.Controllers
             return View();
         }
         
-        public async Task<IActionResult> TestEmail()
-        {
-            try
-            {
-                Console.WriteLine("Starting email test..."); // Debug log
-        
-                await _emailService.SendEmailAsync(
-                    "diankay157@gmail.com", 
-                    "Test Subject", 
-                    "<p>This is a test email body.</p>"
-                );
-                return Content("Test email sent successfully!");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to send test email: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                return Content($"Failed to send test email: {ex.Message}");
-            }
-        }
-
-        
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(string email, string password, string returnUrl = null)

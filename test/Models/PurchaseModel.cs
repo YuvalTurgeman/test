@@ -35,5 +35,7 @@ namespace test.Models
 
         // Many-to-many relationship with Borrows
         public virtual ICollection<BorrowModel> Borrows { get; set; }
+        // Add this property to PurchaseModel.cs
+        public bool IsHidden { get; set; } = false;
     }
 }
