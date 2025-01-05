@@ -16,15 +16,15 @@ namespace test.Services
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
-            try 
+            try
             {
                 // Print connection details for debugging
                 Console.WriteLine("Attempting to send email with the following settings:");
-                Console.WriteLine($"SMTP Server: smtp.gmail.com");
-                Console.WriteLine($"Port: 465");  // Using Gmail's SSL port
+                Console.WriteLine($"SMTP Server: {_emailConfig.SmtpServer}");
+                Console.WriteLine($"Port: {_emailConfig.Port}");
                 Console.WriteLine($"Username: {_emailConfig.Username}");
-                Console.WriteLine($"Password length: {_emailConfig.Password?.Length ?? 0}");
-                
+                Console.WriteLine($"To Email: {toEmail}");
+
                 var message = new MimeMessage();
                 message.From.Add(new MailboxAddress(_emailConfig.SenderName, _emailConfig.SenderEmail));
                 message.To.Add(new MailboxAddress("", toEmail));
@@ -40,23 +40,20 @@ namespace test.Services
                 {
                     // Configure client timeout
                     client.Timeout = 30000; // 30 seconds
-                    
+
                     try
                     {
                         // Connect using SSL
-                        Console.WriteLine("Attempting to connect...");
-                        await client.ConnectAsync("smtp.gmail.com", 465, SecureSocketOptions.SslOnConnect);
-                        Console.WriteLine("Connected successfully");
+                        await client.ConnectAsync(_emailConfig.SmtpServer, _emailConfig.Port, SecureSocketOptions.Auto);
+                        Console.WriteLine("Connected to SMTP server");
 
                         // Authenticate
-                        Console.WriteLine("Attempting authentication...");
                         await client.AuthenticateAsync(_emailConfig.Username, _emailConfig.Password);
-                        Console.WriteLine("Authenticated successfully");
+                        Console.WriteLine("Authentication successful");
 
                         // Send
-                        Console.WriteLine("Attempting to send message...");
                         await client.SendAsync(message);
-                        Console.WriteLine("Message sent successfully");
+                        Console.WriteLine("Email sent successfully");
                     }
                     catch (AuthenticationException authEx)
                     {
@@ -66,7 +63,8 @@ namespace test.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error: {ex.GetType().Name} - {ex.Message}");
+                        Console.WriteLine($"Error during email sending: {ex.GetType().Name} - {ex.Message}");
+                        Console.WriteLine($"Stack trace: {ex.StackTrace}");
                         throw;
                     }
                     finally
@@ -81,8 +79,9 @@ namespace test.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Top level exception: {ex.GetType().Name}");
+                Console.WriteLine($"Top level exception in SendEmailAsync: {ex.GetType().Name}");
                 Console.WriteLine($"Message: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 throw;
             }
         }

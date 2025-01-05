@@ -4,98 +4,187 @@
     var purchasedBooks = ViewBag.PurchasedBooks as IEnumerable<test.Models.PurchaseModel>;
 }
 
-<div class="max-w-6xl mx-auto p-6">
-    <h1 class="text-3xl font-bold text-gray-800 mb-8">My Library</h1>
+<div class="container py-4">
+    <h1 class="mb-4 d-flex align-items-center">
+        <i class="bi bi-book me-2"></i>
+        My Library
+    </h1>
 
     <!-- Borrowed Books Section -->
-    <div class="mb-10">
-        <h2 class="text-2xl font-semibold text-gray-700 mb-6 pb-2 border-b">Borrowed Books</h2>
-        @if (borrowedBooks != null && borrowedBooks.Any())
-        {
-            <div class="space-y-6">
-                @foreach (var borrow in borrowedBooks)
-                {
-                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="text-xl font-semibold text-gray-800">@borrow.Book.Title</h3>
-                                <p class="text-gray-600 mt-1">by @borrow.Book.Author</p>
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white">
+            <h2 class="h4 mb-0">Borrowed Books</h2>
+        </div>
+        <div class="card-body">
+            @if (borrowedBooks != null && borrowedBooks.Any())
+            {
+                <div class="row g-4">
+                    @foreach (var book in borrowedBooks.Where(b => !b.IsReturned))
+                    {
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h3 class="h5 card-title">@book.Book.Title</h3>
+                                    <h4 class="h6 text-muted mb-3">by @book.Book.Author</h4>
+
+                                    @{
+                                        var daysRemaining = (book.EndDate - DateTime.Now).Days;
+                                        var badgeClass = daysRemaining < 7 ? "text-bg-danger" : "text-bg-info";
+                                    }
+
+                                    <div class="mb-3">
+                                        <div class="badge @badgeClass mb-2">
+                                            @daysRemaining days remaining
+                                        </div>
+                                        <div class="small text-muted">
+                                            Due: @book.EndDate.ToString("MMM dd, yyyy")
+                                        </div>
+                                    </div>
+
+                                    @if (!book.IsReturned)
+                                    {
+                                        <form asp-action="ReturnBook" asp-route-id="@book.Id" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-primary">
+                                                Return Book
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
                             </div>
-                            @if (!borrow.IsReturned)
-                            {
-                                <form asp-action="ReturnBook" asp-route-id="@borrow.Id" method="post">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors">
-                                        Return Book
-                                    </button>
-                                </form>
-                            }
                         </div>
-                        <div class="mt-4 flex gap-x-6 text-sm text-gray-500">
-                            <div>
-                                <span class="font-medium">Borrowed:</span>
-                                <span>@borrow.StartDate.ToShortDateString()</span>
-                            </div>
-                            <div>
-                                <span class="font-medium">Due:</span>
-                                <span class="@(borrow.EndDate < DateTime.Now ? "text-red-500" : "")">
-                                    @borrow.EndDate.ToShortDateString()
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-        }
-        else
-        {
-            <p class="text-gray-500 italic">You haven't borrowed any books yet.</p>
-        }
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>
+                    You haven't borrowed any books yet.
+                </div>
+            }
+        </div>
     </div>
 
     <!-- Purchased Books Section -->
-    <div>
-        <h2 class="text-2xl font-semibold text-gray-700 mb-6 pb-2 border-b">Purchased Books</h2>
-        @if (purchasedBooks != null && purchasedBooks.Any())
-        {
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                @foreach (var purchase in purchasedBooks)
-                {
-                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                        <h3 class="text-xl font-semibold text-gray-800">@purchase.Book.Title</h3>
-                        <p class="text-gray-600 mt-1">by @purchase.Book.Author</p>
-                        <div class="mt-4 text-sm text-gray-500">
-                            <p class="flex justify-between">
-                                <span class="font-medium">Purchased:</span>
-                                <span>@purchase.PurchaseDate.ToShortDateString()</span>
-                            </p>
-                            <p class="flex justify-between mt-1">
-                                <span class="font-medium">Price:</span>
-                                <span>$@purchase.FinalPrice.ToString("F2")</span>
-                            </p>
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h2 class="h4 mb-0">Purchased Books</h2>
+        </div>
+        <div class="card-body">
+            @if (purchasedBooks != null && purchasedBooks.Any())
+            {
+                <div class="row g-4">
+                    @foreach (var book in purchasedBooks.Where(p => !p.IsHidden))
+                    {
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h3 class="h5 card-title">@book.Book.Title</h3>
+                                            <h4 class="h6 text-muted mb-3">by @book.Book.Author</h4>
+                                        </div>
+                                        <div>
+                                            <button type="button"
+                                                    class="btn btn-outline-danger btn-sm"
+                                                    onclick="confirmDeleteBook(@book.Id, '@book.Book.Title')"
+                                                    title="Delete permanently">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="small text-muted">
+                                        Purchased: @book.PurchaseDate.ToString("MMM dd, yyyy")
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                }
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>
+                    You haven't purchased any books yet.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Delete Book Modal -->
+<div class="modal fade" id="deleteBookModal" tabindex="-1" aria-labelledby="deleteBookModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteBookModalLabel">Delete Book Permanently</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-        }
-        else
-        {
-            <p class="text-gray-500 italic">You haven't purchased any books yet.</p>
-        }
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Warning: This action cannot be undone!
+                </div>
+                <p>Are you sure you want to permanently delete <strong><span id="bookTitle" class="fw-medium"></span></strong> from your library?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteBookForm" asp-action="DeletePurchasedBook" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="bookToDeleteId" name="id" value="" />
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>
+                        Delete Permanently
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
 @section Scripts {
-    @if (TempData["Success"] != null)
-    {
-        <script>
-            alert('@TempData["Success"]');
-        </script>
-    }
-    @if (TempData["Error"] != null)
-    {
-        <script>
-            alert('@TempData["Error"]');
-        </script>
-    }
+    <script>
+        let deleteModal;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            deleteModal = new bootstrap.Modal(document.getElementById('deleteBookModal'));
+
+            // Display alert messages if they exist
+            const successMessage = '@TempData["Success"]';
+            const errorMessage = '@TempData["Error"]';
+
+            if (successMessage) {
+                showAlert('success', successMessage);
+            }
+            if (errorMessage) {
+                showAlert('danger', errorMessage);
+            }
+        });
+
+        function confirmDeleteBook(id, title) {
+            document.getElementById('bookToDeleteId').value = id;
+            document.getElementById('bookTitle').textContent = title;
+            deleteModal.show();
+        }
+
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+
+            const container = document.querySelector('.container');
+            container.insertBefore(alertDiv, container.firstChild);
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                alertDiv.classList.remove('show');
+                setTimeout(() => alertDiv.remove(), 150);
+            }, 5000);
+        }
+    </script>
 }
