@@ -19,7 +19,7 @@ namespace test.Controllers
         public AccountController(UserDAL userDAL, EmailService emailService)
         {
             _userDAL = userDAL;
-            _emailService = emailService; // Assign the EmailService to a private field
+            _emailService = emailService; 
         }
 
 
@@ -34,8 +34,10 @@ namespace test.Controllers
         {
             try
             {
+                Console.WriteLine("Starting email test..."); // Debug log
+        
                 await _emailService.SendEmailAsync(
-                    "taltush2412@gmail.com", 
+                    "diankay157@gmail.com", 
                     "Test Subject", 
                     "<p>This is a test email body.</p>"
                 );
@@ -43,6 +45,8 @@ namespace test.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Failed to send test email: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return Content($"Failed to send test email: {ex.Message}");
             }
         }
@@ -165,7 +169,7 @@ namespace test.Controllers
             // string body = $"<p>Dear {user.Username},</p><p>Thank you for registering at DigiReads!</p>";
             // await _emailService.SendEmailAsync(user.Email, subject, body);
 
-            _emailService.TestEmailAsync();
+            //_emailService.TestEmailAsync();
             
             return RedirectToAction("Login", "Account");
         }
@@ -418,9 +422,6 @@ namespace test.Controllers
             Console.WriteLine($"Access denied for user: {user}");
             return View();
         }
-    
-    
- 
-
+        
     }
 }

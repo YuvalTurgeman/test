@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System.Text;
 using Stripe.Checkout;
 using test.Data;
 using test.Models;
@@ -17,14 +18,16 @@ namespace test.Controllers
         private readonly PaymentService _paymentService;
         private readonly BorrowDAL _borrowDAL;
         private readonly WaitingListDAL _waitingListDAL;
-        
+        private readonly EmailService _emailService;
+
         public ShoppingCartController(
             ShoppingCartDAL cartDAL,
             CartItemDAL cartItemDAL,
             BookDAL bookDAL,
             PaymentService paymentService,
             BorrowDAL borrowDAL,
-            WaitingListDAL waitingListDAL) 
+            WaitingListDAL waitingListDAL,
+            EmailService emailService)  
         {
             _cartDAL = cartDAL;
             _cartItemDAL = cartItemDAL;
@@ -32,6 +35,7 @@ namespace test.Controllers
             _paymentService = paymentService;
             _borrowDAL = borrowDAL;
             _waitingListDAL = waitingListDAL;
+            _emailService = emailService;  
         }
 
         public async Task<IActionResult> Index()
@@ -118,11 +122,30 @@ namespace test.Controllers
         {
             try
             {
-                await _cartItemDAL.DeleteAsync(id);
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var cart = await _cartDAL.GetByUserIdAsync(userId);
+        
+                if (cart == null)
+                {
+                    TempData["Error"] = "Cart not found.";
+                    return RedirectToAction("Index");
+                }
+
+                // Find the cart item in the current cart
+                var cartItem = cart.CartItems.FirstOrDefault(i => i.Id == id);
+                if (cartItem == null)
+                {
+                    TempData["Error"] = "Item not found in cart.";
+                    return RedirectToAction("Index");
+                }
+
+                // Use the ShoppingCartDAL to remove the item
+                await _cartDAL.RemoveItemFromCartAsync(cart.Id, id);
+        
                 TempData["Success"] = "Item removed from cart.";
                 return RedirectToAction("Index");
             }
-            catch
+            catch (Exception ex)
             {
                 TempData["Error"] = "Failed to remove item from cart.";
                 return RedirectToAction("Index");
@@ -235,6 +258,7 @@ namespace test.Controllers
             try
             {
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                // Changed from _cartItemDAL to _cartDAL
                 var cart = await _cartDAL.GetByUserIdAsync(userId);
 
                 if (cart == null || !cart.CartItems.Any())
@@ -262,11 +286,11 @@ namespace test.Controllers
                             Currency = "usd",
                             ProductData = new SessionLineItemPriceDataProductDataOptions
                             {
-                                Name = $"Digireads eBooks",
+                                Name = $"DigiReads - eBooks",
                             },
                             UnitAmount = Convert.ToInt64(item.FinalPrice * 100)
                         },
-                        Quantity = 1
+                        Quantity = item.Quantity
                     });
                 }
 
@@ -284,44 +308,130 @@ namespace test.Controllers
             }
         }
 
-        public async Task<IActionResult> Success()
+    public async Task<IActionResult> Success()
+{
+    try
+    {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+        var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+        
+        Console.WriteLine($"Processing success for user ID: {userId}, Email: {userEmail}"); // Debug log
+
+        var cart = await _cartDAL.GetByUserIdAsync(userId);
+
+        if (cart == null || !cart.CartItems.Any())
+        {
+            Console.WriteLine("Cart is empty or not found"); // Debug log
+            ViewBag.Message = "No items to process.";
+            return View();
+        }
+
+        // Process each cart item
+        var purchasedItems = new List<(string Title, decimal Price)>();
+        var borrowedItems = new List<(string Title, decimal Price, DateTime EndDate)>();
+
+        foreach (var item in cart.CartItems)
         {
             try
             {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var cart = await _cartDAL.GetByUserIdAsync(userId);
+                var book = await _bookDAL.GetBookByIdAsync(item.BookId);
+                Console.WriteLine($"Processing book: {book.Title}"); // Debug log
 
-                // Process each cart item
-                foreach (var item in cart.CartItems)
+                if (item.IsBorrow)
                 {
-                    if (item.IsBorrow)
+                    var borrow = new BorrowModel
                     {
-                        var borrow = new BorrowModel
-                        {
-                            BookId = item.BookId,
-                            UserId = userId,
-                            StartDate = DateTime.UtcNow,
-                            EndDate = DateTime.UtcNow.AddDays(30),
-                            BorrowPrice = item.FinalPrice ?? 0
-                        };
-                        await _borrowDAL.CreateBorrowAsync(borrow);
-                        await _bookDAL.UpdateAvailableCopiesAsync(item.BookId);
-                    }
-                    // Handle purchases if needed
+                        BookId = item.BookId,
+                        UserId = userId,
+                        StartDate = DateTime.UtcNow,
+                        EndDate = DateTime.UtcNow.AddDays(30),
+                        BorrowPrice = item.FinalPrice ?? 0
+                    };
+                    await _borrowDAL.CreateBorrowAsync(borrow);
+                    await _bookDAL.UpdateAvailableCopiesAsync(item.BookId);
+                    borrowedItems.Add((book.Title, item.FinalPrice ?? 0, borrow.EndDate));
                 }
-
-                // Clear the cart
-                await _cartDAL.ClearCartAsync(userId);
-                
-                ViewBag.Message = "Your transaction was successful!";
-                return View();
+                else
+                {
+                    purchasedItems.Add((book.Title, item.FinalPrice ?? 0));
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                ViewBag.Message = "There was an error processing your transaction.";
-                return View();
+                Console.WriteLine($"Error processing item {item.Id}: {ex.Message}"); // Debug log
+                throw;
             }
         }
+
+        if (!string.IsNullOrEmpty(userEmail))
+        {
+            try
+            {
+                Console.WriteLine("Attempting to send email..."); // Debug log
+                
+                var subject = "DigiReads - Order Confirmation";
+                var emailBody = BuildEmailBody(purchasedItems, borrowedItems, User.Identity.Name ?? "Valued Customer");
+                
+                await _emailService.SendEmailAsync(userEmail, subject, emailBody);
+                Console.WriteLine("Email sent successfully"); // Debug log
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Email sending failed: {ex.Message}"); // Debug log
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                // Don't throw here - we still want to complete the transaction
+            }
+        }
+
+        // Clear the cart
+        await _cartDAL.ClearCartAsync(userId);
+        
+        ViewBag.Message = "Your transaction was successful! A confirmation email has been sent to your inbox.";
+        return View();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Transaction Error: {ex.Message}"); // Debug log
+        Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        ViewBag.Message = "There was an error processing your transaction.";
+        return View();
+    }
+}
+
+private string BuildEmailBody(
+    List<(string Title, decimal Price)> purchasedItems,
+    List<(string Title, decimal Price, DateTime EndDate)> borrowedItems,
+    string userName)
+{
+    var emailBuilder = new StringBuilder();
+    emailBuilder.AppendLine("<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>");
+    emailBuilder.AppendLine("<h2 style='color: #2c3e50;'>Thank you for your order!</h2>");
+    emailBuilder.AppendLine($"<p>Dear {userName},</p>");
+    emailBuilder.AppendLine("<p>Here's a summary of your order:</p>");
+
+    if (purchasedItems.Any())
+    {
+        emailBuilder.AppendLine("<h3 style='color: #3498db;'>Purchased Books:</h3><ul>");
+        foreach (var (title, price) in purchasedItems)
+        {
+            emailBuilder.AppendLine($"<li>{title} - ${price:F2}</li>");
+        }
+        emailBuilder.AppendLine("</ul>");
+    }
+
+    if (borrowedItems.Any())
+    {
+        emailBuilder.AppendLine("<h3 style='color: #3498db;'>Borrowed Books:</h3><ul>");
+        foreach (var (title, price, endDate) in borrowedItems)
+        {
+            emailBuilder.AppendLine($"<li>{title} - ${price:F2} (Due: {endDate:MMM dd, yyyy})</li>");
+        }
+        emailBuilder.AppendLine("</ul>");
+    }
+
+    emailBuilder.AppendLine("</div>");
+    return emailBuilder.ToString();
+}
 
         public IActionResult Cancel()
         {

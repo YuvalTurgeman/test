@@ -58,11 +58,11 @@ namespace test.Data
         {
             var entry = await _context.WaitingList
                 .FirstOrDefaultAsync(w => w.UserId == userId && w.BookId == bookId);
-            
+
             if (entry != null)
             {
                 _context.WaitingList.Remove(entry);
-                
+
                 // Reorder positions for remaining users
                 var remainingEntries = await _context.WaitingList
                     .Where(w => w.BookId == bookId && w.Position > entry.Position)
@@ -115,6 +115,56 @@ namespace test.Data
             }
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<WaitingListModel> GetFirstInLineAsync(int bookId)
+        {
+            return await _context.WaitingList
+                .Include(w => w.User)
+                .Include(w => w.Book)
+                .Where(w => w.BookId == bookId && !w.IsNotified)
+                .OrderBy(w => w.Position)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task MarkAsNotifiedAsync(int waitingListId)
+        {
+            var waitingListEntry = await _context.WaitingList.FindAsync(waitingListId);
+            if (waitingListEntry != null)
+            {
+                waitingListEntry.IsNotified = true;
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task RemoveFromWaitingListAsync(int waitingListId)
+        {
+            var entry = await _context.WaitingList.FindAsync(waitingListId);
+            if (entry != null)
+            {
+                // Get all waiting list entries for the same book with higher positions
+                var higherPositions = await _context.WaitingList
+                    .Where(w => w.BookId == entry.BookId && w.Position > entry.Position)
+                    .ToListAsync();
+
+                // Decrease their positions by 1
+                foreach (var item in higherPositions)
+                {
+                    item.Position--;
+                }
+
+                // Remove the current entry
+                _context.WaitingList.Remove(entry);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+// Optional: Method to check waiting list status
+        public async Task<int> GetPositionInWaitingListAsync(int userId, int bookId)
+        {
+            var entry = await _context.WaitingList
+                .FirstOrDefaultAsync(w => w.UserId == userId && w.BookId == bookId);
+            return entry?.Position ?? -1;
         }
     }
 }

@@ -1,69 +1,101 @@
-@model IEnumerable<BorrowModel>
+@{
+    ViewData["Title"] = "My Library";
+    var borrowedBooks = ViewBag.BorrowedBooks as IEnumerable<test.Models.BorrowModel>;
+    var purchasedBooks = ViewBag.PurchasedBooks as IEnumerable<test.Models.PurchaseModel>;
+}
 
-<div class="container">
-    <h2>My Borrowed Books</h2>
+<div class="max-w-6xl mx-auto p-6">
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">My Library</h1>
 
-    @if (!Model.Any())
-    {
-        <p>You haven't borrowed any books yet.</p>
-    }
-    else
-    {
-        <div class="row">
-            @foreach (var borrow in Model)
-            {
-                <div class="col-md-4 mb-4">
-                    <div class="card">
-                        @if (!string.IsNullOrEmpty(borrow.Book.CoverImage))
-                        {
-                            <img src="@borrow.Book.CoverImage" class="card-img-top" alt="@borrow.Book.Title cover">
-                        }
-                        <div class="card-body">
-                            <h5 class="card-title">@borrow.Book.Title</h5>
-                            <p class="card-text">
-                                <small class="text-muted">Borrowed on: @borrow.StartDate.ToShortDateString()</small><br />
-                                <small class="text-muted">Due date: @borrow.EndDate.ToShortDateString()</small>
-                            </p>
-                            
+    <!-- Borrowed Books Section -->
+    <div class="mb-10">
+        <h2 class="text-2xl font-semibold text-gray-700 mb-6 pb-2 border-b">Borrowed Books</h2>
+        @if (borrowedBooks != null && borrowedBooks.Any())
+        {
+            <div class="space-y-6">
+                @foreach (var borrow in borrowedBooks)
+                {
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-xl font-semibold text-gray-800">@borrow.Book.Title</h3>
+                                <p class="text-gray-600 mt-1">by @borrow.Book.Author</p>
+                            </div>
                             @if (!borrow.IsReturned)
                             {
-                                if (borrow.EndDate < DateTime.UtcNow)
-                                {
-                                    <div class="alert alert-danger">
-                                        <small>Overdue by @((DateTime.UtcNow - borrow.EndDate).Days) days</small>
-                                    </div>
-                                }
-                                
-                                <form asp-action="ReturnBook" method="post">
+                                <form asp-action="ReturnBook" asp-route-id="@borrow.Id" method="post">
                                     @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@borrow.Id" />
-                                    <button type="submit" class="btn btn-primary">Return Book</button>
+                                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors">
+                                        Return Book
+                                    </button>
                                 </form>
                             }
-                            else
-                            {
-                                <div class="alert alert-success">
-                                    <small>Returned on: @borrow.ReturnedDate?.ToShortDateString()</small>
-                                </div>
-                            }
+                        </div>
+                        <div class="mt-4 flex gap-x-6 text-sm text-gray-500">
+                            <div>
+                                <span class="font-medium">Borrowed:</span>
+                                <span>@borrow.StartDate.ToShortDateString()</span>
+                            </div>
+                            <div>
+                                <span class="font-medium">Due:</span>
+                                <span class="@(borrow.EndDate < DateTime.Now ? "text-red-500" : "")">
+                                    @borrow.EndDate.ToShortDateString()
+                                </span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            }
-        </div>
-    }
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-gray-500 italic">You haven't borrowed any books yet.</p>
+        }
+    </div>
 
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger">
-            @TempData["Error"]
-        </div>
-    }
+    <!-- Purchased Books Section -->
+    <div>
+        <h2 class="text-2xl font-semibold text-gray-700 mb-6 pb-2 border-b">Purchased Books</h2>
+        @if (purchasedBooks != null && purchasedBooks.Any())
+        {
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach (var purchase in purchasedBooks)
+                {
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                        <h3 class="text-xl font-semibold text-gray-800">@purchase.Book.Title</h3>
+                        <p class="text-gray-600 mt-1">by @purchase.Book.Author</p>
+                        <div class="mt-4 text-sm text-gray-500">
+                            <p class="flex justify-between">
+                                <span class="font-medium">Purchased:</span>
+                                <span>@purchase.PurchaseDate.ToShortDateString()</span>
+                            </p>
+                            <p class="flex justify-between mt-1">
+                                <span class="font-medium">Price:</span>
+                                <span>$@purchase.FinalPrice.ToString("F2")</span>
+                            </p>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-gray-500 italic">You haven't purchased any books yet.</p>
+        }
+    </div>
+</div>
 
+@section Scripts {
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success">
-            @TempData["Success"]
-        </div>
+        <script>
+            alert('@TempData["Success"]');
+        </script>
     }
-</div>
+    @if (TempData["Error"] != null)
+    {
+        <script>
+            alert('@TempData["Error"]');
+        </script>
+    }
+}
