@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using test.Enums;
 
 namespace test.Models
 {
@@ -24,8 +25,8 @@ namespace test.Models
         [MaxLength(500)]
         public string CoverImage { get; set; }
 
-        [MaxLength(50)]
-        public string Genre { get; set; }
+        [Required]
+        public Genre Genre { get; set; }
 
         [Required]
         [MaxLength(100)]

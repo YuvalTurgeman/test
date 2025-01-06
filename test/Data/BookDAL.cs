@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using test.Models;
+using test.Enums;
 
 namespace test.Data
 {
@@ -50,41 +51,39 @@ namespace test.Data
             string searchAuthor = null,
             int? searchYear = null,
             bool? discountedOnly = null,
+            Genre? genre = null,
             string sortBy = null,
             bool ascending = true)
         {
             var query = _context.Books.AsQueryable();
 
-            // Filter by title
+            // Apply filters
             if (!string.IsNullOrEmpty(searchTitle))
                 query = query.Where(b => EF.Functions.Like(b.Title, $"%{searchTitle}%"));
 
-            // Filter by author
             if (!string.IsNullOrEmpty(searchAuthor))
                 query = query.Where(b => EF.Functions.Like(b.Author, $"%{searchAuthor}%"));
 
-            // Filter by year published
             if (searchYear.HasValue)
                 query = query.Where(b => b.YearPublished == searchYear.Value);
 
-            // Filter by discounted books
             if (discountedOnly.HasValue && discountedOnly.Value)
                 query = query.Where(b => b.Discounts.Any(d => d.IsActive));
 
-            // Sorting
+            if (genre.HasValue)
+                query = query.Where(b => b.Genre == genre.Value);
+
+            // Apply sorting
             query = sortBy switch
             {
-                "PurchasePrice" => ascending ? query.OrderBy(b => b.PurchasePrice) : query.OrderByDescending(b => b.PurchasePrice),
-                "BorrowPrice" => ascending ? query.OrderBy(b => b.BorrowPrice) : query.OrderByDescending(b => b.BorrowPrice),
-                _ => query // No sorting
+                "purchaseprice" => ascending ? query.OrderBy(b => b.PurchasePrice) : query.OrderByDescending(b => b.PurchasePrice),
+                "borrowprice" => ascending ? query.OrderBy(b => b.BorrowPrice) : query.OrderByDescending(b => b.BorrowPrice),
+                _ => query
             };
 
-            return await query
-                .Include(b => b.Discounts)
-                .Include(b => b.Borrows)
-                .Include(b => b.WaitingList)
-                .ToListAsync();
+            return await query.ToListAsync();
         }
+
 
         // Update
         public async Task<BookModel> UpdateBookAsync(BookModel book)
