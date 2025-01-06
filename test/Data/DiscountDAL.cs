@@ -16,9 +16,18 @@ namespace test.Data
 
         public async Task<DiscountModel> CreateDiscountAsync(DiscountModel discount)
         {
-            await _context.Discounts.AddAsync(discount);
-            await _context.SaveChangesAsync();
-            return discount;
+            try
+            {
+                Console.WriteLine($"Creating discount: {discount.BookId}, {discount.DiscountAmount}");
+                await _context.Discounts.AddAsync(discount);
+                await _context.SaveChangesAsync();
+                return discount;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error creating discount: {ex.Message}");
+                throw;
+            }
         }
 
         public async Task<DiscountModel> GetDiscountAsync(int id)

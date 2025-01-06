@@ -16,20 +16,21 @@ namespace test.Data
         {
             try
             {
-                Console.WriteLine($"Creating purchase record for BookId: {purchase.BookId}, UserId: {purchase.UserId}");
-                
+                Console.WriteLine($"Creating purchase record for BookId: {purchase.BookId}, UserId: {purchase.UserId}, Quantity: {purchase.Quantity}");
+
                 // Check if the book and user exist
                 var book = await _context.Books.FindAsync(purchase.BookId);
                 var user = await _context.users.FindAsync(purchase.UserId);
-                
+
                 if (book == null || user == null)
                 {
                     throw new InvalidOperationException("Invalid book or user ID");
                 }
 
+                // Add the purchase record
                 await _context.Purchases.AddAsync(purchase);
                 await _context.SaveChangesAsync();
-                
+
                 Console.WriteLine($"Successfully created purchase with ID: {purchase.Id}");
                 return purchase;
             }
@@ -40,7 +41,6 @@ namespace test.Data
                 throw;
             }
         }
-
         public async Task<PurchaseModel> GetPurchaseByIdAsync(int id)
         {
             try

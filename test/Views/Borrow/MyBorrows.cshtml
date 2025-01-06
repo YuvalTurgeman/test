@@ -41,15 +41,23 @@
                                         </div>
                                     </div>
 
-                                    @if (!book.IsReturned)
-                                    {
-                                        <form asp-action="ReturnBook" asp-route-id="@book.Id" method="post">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-primary">
-                                                Return Book
-                                            </button>
-                                        </form>
-                                    }
+                                    <div class="d-flex gap-2">
+                                        @if (!book.IsReturned)
+                                        {
+                                            <form asp-action="ReturnBook" asp-route-id="@book.Id" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-primary">
+                                                    Return Book
+                                                </button>
+                                            </form>
+                                        }
+                                        <button type="button"
+                                                class="btn btn-outline-primary"
+                                                onclick="downloadBook(@book.Id, '@book.Book.Title', '@book.Book.Formats')"
+                                                title="Read book">
+                                            <i class="bi bi-book-half"></i> Read
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -75,31 +83,43 @@
             @if (purchasedBooks != null && purchasedBooks.Any())
             {
                 <div class="row g-4">
-                    @foreach (var book in purchasedBooks.Where(p => !p.IsHidden))
+                    @foreach (var book in purchasedBooks)
                     {
-                        <div class="col-12 col-md-6 col-lg-4">
-                            <div class="card h-100 border-0 shadow-sm">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <h3 class="h5 card-title">@book.Book.Title</h3>
-                                            <h4 class="h6 text-muted mb-3">by @book.Book.Author</h4>
+                        if (!book.IsHidden)
+                        {
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h3 class="h5 card-title">@book.Book.Title</h3>
+                                                <h4 class="h6 text-muted mb-3">by @book.Book.Author</h4>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button type="button"
+                                                        class="btn btn-outline-primary btn-sm"
+                                                        onclick="downloadBook(@book.Id, '@book.Book.Title', '@book.Book.Formats')"
+                                                        title="Read book">
+                                                    <i class="bi bi-book-half"></i>
+                                                </button>
+                                                <button type="button"
+                                                        class="btn btn-outline-danger btn-sm"
+                                                        onclick="confirmDeleteBook(@book.Id, '@book.Book.Title')"
+                                                        title="Delete permanently">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <button type="button"
-                                                    class="btn btn-outline-danger btn-sm"
-                                                    onclick="confirmDeleteBook(@book.Id, '@book.Book.Title')"
-                                                    title="Delete permanently">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
+                                        <div class="small text-muted">
+                                            Purchased: @book.PurchaseDate.ToString("MMM dd, yyyy")
                                         </div>
-                                    </div>
-                                    <div class="small text-muted">
-                                        Purchased: @book.PurchaseDate.ToString("MMM dd, yyyy")
+                                        <div class="small text-muted mt-1">
+                                            Available formats: @book.Book.Formats
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        }
                     }
                 </div>
             }
@@ -144,47 +164,136 @@
     </div>
 </div>
 
+<!-- Download Format Modal -->
+<div class="modal fade" id="downloadFormatModal" tabindex="-1" aria-labelledby="downloadFormatModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="downloadFormatModalLabel">Read Book</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Select format to read <strong><span id="downloadBookTitle"></span></strong>:</p>
+                <div id="formatButtons" class="d-flex gap-2 flex-wrap">
+                    <!-- Format buttons will be inserted here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         let deleteModal;
+        let downloadFormatModal;
 
         document.addEventListener('DOMContentLoaded', function() {
-            deleteModal = new bootstrap.Modal(document.getElementById('deleteBookModal'));
+            // Initialize modals correctly
+            deleteModal = new bootstrap.Modal('#deleteBookModal');
+            downloadFormatModal = new bootstrap.Modal('#downloadFormatModal');
 
-            // Display alert messages if they exist
+            // Handle existing alerts
             const successMessage = '@TempData["Success"]';
             const errorMessage = '@TempData["Error"]';
 
-            if (successMessage) {
+            if (successMessage && successMessage !== '') {
                 showAlert('success', successMessage);
             }
-            if (errorMessage) {
+            if (errorMessage && errorMessage !== '') {
                 showAlert('danger', errorMessage);
             }
         });
 
         function confirmDeleteBook(id, title) {
+            console.log('Delete book:', id, title); // Debug log
             document.getElementById('bookToDeleteId').value = id;
             document.getElementById('bookTitle').textContent = title;
             deleteModal.show();
         }
 
+        function downloadBook(id, title, formats) {
+            console.log('Download book:', id, title, formats); // Debug log
+            document.getElementById('downloadBookTitle').textContent = title;
+
+            // Clear and populate format buttons
+            const formatButtons = document.getElementById('formatButtons');
+            formatButtons.innerHTML = '';
+
+            // Handle empty or invalid formats
+            if (!formats) {
+                formatButtons.innerHTML = '<p class="text-danger">No formats available</p>';
+                return;
+            }
+
+            formats.split(',').forEach(format => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-primary me-2 mb-2';
+                format = format.trim().toLowerCase();
+
+                // Set button content
+                let icon = 'file-text';
+                if (format === 'pdf') icon = 'file-pdf';
+                if (format === 'epub') icon = 'file-earmark-text';
+
+                btn.innerHTML = `
+                    <i class="bi bi-${icon} me-2"></i>
+                    Read as ${format.toUpperCase()}
+                `;
+
+                // Add click handler
+                btn.addEventListener('click', function() {
+                    simulateReading(this, title, format);
+                });
+
+                formatButtons.appendChild(btn);
+            });
+
+            downloadFormatModal.show();
+        }
+
+        function simulateReading(button, title, format) {
+            // Show loading state
+            const originalContent = button.innerHTML;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Opening...';
+            button.disabled = true;
+
+            // Simulate loading delay
+            setTimeout(() => {
+                downloadFormatModal.hide();
+                showAlert('success', `Opening ${title} in ${format.toUpperCase()} format...`);
+
+                // Reset button state
+                button.innerHTML = originalContent;
+                button.disabled = false;
+            }, 1500);
+        }
+
         function showAlert(type, message) {
+            // Remove any existing alerts
+            const existingAlerts = document.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+
+            // Create new alert
             const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '1050';
             alertDiv.innerHTML = `
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             `;
 
-            const container = document.querySelector('.container');
-            container.insertBefore(alertDiv, container.firstChild);
+            document.body.appendChild(alertDiv);
 
-            // Auto-dismiss after 5 seconds
+            // Auto-dismiss
             setTimeout(() => {
                 alertDiv.classList.remove('show');
                 setTimeout(() => alertDiv.remove(), 150);
-            }, 5000);
+            }, 3000);
         }
     </script>
 }

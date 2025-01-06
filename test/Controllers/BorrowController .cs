@@ -187,30 +187,22 @@ namespace test.Controllers
             try
             {
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                Console.WriteLine($"MyBorrows called for user ID: {userId}");
-
-                // Get all purchases through PurchaseDAL
-                var allPurchases = await _purchaseDAL.GetAllPurchasesAsync();
-                Console.WriteLine($"Total purchases in database: {allPurchases.Count}");
         
-                // Get user purchases
+                // Get user purchases - ensure we're getting all non-hidden purchases
                 var userPurchases = await _purchaseDAL.GetUserPurchasesAsync(userId);
-                Console.WriteLine($"Purchases returned for view: {userPurchases.Count}");
+                var activePurchases = userPurchases.Where(p => !p.IsHidden).ToList();
         
                 // Get borrows
                 var borrows = await _borrowDAL.GetUserBorrowsAsync(userId);
                 var activeBorrows = borrows.Where(b => !b.IsReturned && b.EndDate > DateTime.UtcNow);
-                Console.WriteLine($"Active borrows: {activeBorrows.Count()}");
 
-                ViewBag.PurchasedBooks = userPurchases;
+                ViewBag.PurchasedBooks = activePurchases; // Make sure we're passing all purchases
                 ViewBag.BorrowedBooks = activeBorrows;
 
                 return View();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in MyBorrows: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 TempData["Error"] = "Failed to load library.";
                 return RedirectToAction("Index", "Home");
             }
@@ -341,5 +333,6 @@ namespace test.Controllers
                 return RedirectToAction(nameof(MyBorrows));
             }
         }
+        
     }
 }

@@ -21,6 +21,19 @@ public class BooksController : Controller
     public async Task<IActionResult> AdminBooks()
     {
         var books = await _bookDAL.GetAllBooksAsync();
+        foreach (var book in books)
+        {
+            var activeDiscount = book.Discounts?
+                .FirstOrDefault(d => d.IsActive && 
+                                     d.StartDate.ToUniversalTime() <= DateTime.UtcNow && 
+                                     d.EndDate.ToUniversalTime() > DateTime.UtcNow);
+        
+            if (activeDiscount != null)
+            {
+                Console.WriteLine($"Book {book.Title} has active discount: {activeDiscount.DiscountAmount}%");
+                Console.WriteLine($"StartDate: {activeDiscount.StartDate}, EndDate: {activeDiscount.EndDate}");
+            }
+        }
         return View(books);
     }
 

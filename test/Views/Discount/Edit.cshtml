@@ -1,0 +1,71 @@
+@model test.Models.DiscountModel
+
+@{
+    ViewData["Title"] = "Edit Discount";
+    var bookTitle = ViewData["BookTitle"] as string;
+}
+
+<div class="container-fluid">
+    <h1>Edit Discount</h1>
+    <h4>for @bookTitle</h4>
+    <hr />
+
+    <div class="row">
+        <div class="col-md-6">
+            <form asp-action="Edit" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="BookId" />
+
+                <div class="form-group mb-3">
+                    <label asp-for="DiscountAmount" class="form-label">Discount Percentage</label>
+                    <input asp-for="DiscountAmount" class="form-control" type="number" step="0.01" min="0" max="100" />
+                    <span asp-validation-for="DiscountAmount" class="text-danger"></span>
+                    <small class="form-text text-muted">Enter a value between 0 and 100</small>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="StartDate" class="form-label">Start Date</label>
+                    <input asp-for="StartDate" class="form-control" type="datetime-local" />
+                    <span asp-validation-for="StartDate" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="EndDate" class="form-label">End Date</label>
+                    <input asp-for="EndDate" class="form-control" type="datetime-local" />
+                    <span asp-validation-for="EndDate" class="text-danger"></span>
+                    <small class="form-text text-muted">Maximum discount period is 7 days</small>
+                </div>
+
+                <div class="form-group mb-3">
+                    <div class="form-check">
+                        <input asp-for="IsActive" class="form-check-input" />
+                        <label asp-for="IsActive" class="form-check-label">Active</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <a asp-controller="Books" asp-action="AdminBooks" class="btn btn-secondary">Back to Books</a>
+                    <button type="button" class="btn btn-danger" onclick="confirmDelete(@Model.Id)">Delete</button>
+                </div>
+            </form>
+
+            <form id="deleteForm" asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:none;">
+                @Html.AntiForgeryToken()
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        function confirmDelete(id) {
+            if (confirm("Are you sure you want to delete this discount?")) {
+                document.getElementById('deleteForm').submit();
+            }
+        }
+    </script>
+}
