@@ -26,6 +26,10 @@ namespace test.Models
         [EnumDataType(typeof(UserPermission))]
         public UserPermission Permission { get; set; }
         
+        // Forgot Password fields
+        public string? ResetToken { get; set; }
+        public DateTime? ResetTokenExpires { get; set; }
+        
         // Navigation properties
         public virtual ICollection<PurchaseModel> Purchases { get; set; }
         public virtual ICollection<BorrowModel> Borrows { get; set; }

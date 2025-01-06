@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore; 
 using test.Data;
+using test.Enums;
 using test.Models;
 
 [Route("Books")]
@@ -156,21 +157,30 @@ public class BooksController : Controller
         return View(book);
     }
 
+    
+
     [HttpGet("UserHomePage")]
     public async Task<IActionResult> UserHomePage(
         string searchTitle = null,
         string searchAuthor = null,
         int? searchYear = null,
         bool? discountedOnly = null,
+        Genre? genre = null, // Add the genre filter
         string sortBy = null,
-        bool ascending = true)
+        string sortOrder = "asc") // Default to ascending order
     {
-        // Call the updated DAL method with all parameters
+        // Determine the sorting direction
+        bool ascending = sortOrder?.ToLower() == "asc";
+        
+
+
+        // Fetch books with filtering and sorting
         var books = await _bookDAL.GetBooksAsync(
             searchTitle: searchTitle,
             searchAuthor: searchAuthor,
             searchYear: searchYear,
             discountedOnly: discountedOnly,
+            genre: genre, // Pass the genre filter
             sortBy: sortBy,
             ascending: ascending
         );
@@ -180,67 +190,10 @@ public class BooksController : Controller
         ViewData["SearchAuthor"] = searchAuthor;
         ViewData["Year"] = searchYear;
         ViewData["Discounted"] = discountedOnly;
+        ViewData["Genre"] = genre; // Add genre to ViewData
         ViewData["SortBy"] = sortBy;
-        ViewData["SortOrder"] = ascending ? "asc" : "desc";
+        ViewData["SortOrder"] = sortOrder;
 
         return View(books);
     }
-
-
-    // [HttpPost("Purchase/{id:int}")]
-    // [ValidateAntiForgeryToken]
-    // public async Task<IActionResult> Purchase(int id)
-    // {
-    //     var userId = HttpContext.Session.GetInt32("UserId");
-    //     if (!userId.HasValue)
-    //     {
-    //         return RedirectToAction("Login", "Account");
-    //     }
-    //
-    //     var book = await _bookDAL.GetBookByIdAsync(id);
-    //     if (book == null)
-    //     {
-    //         return NotFound();
-    //     }
-    //
-    //     var purchase = new PurchaseModel
-    //     {
-    //         BookId = book.Id,
-    //         UserId = userId.Value,
-    //         PurchaseDate = DateTime.UtcNow,
-    //         FinalPrice = book.PurchasePrice ?? 0
-    //     };
-    //
-    //     await _purchaseDAL.CreatePurchaseAsync(purchase);
-    //     return RedirectToAction("UserHomePage");
-    // }
-    //
-    // [HttpPost("Borrow/{id:int}")]
-    // [ValidateAntiForgeryToken]
-    // public async Task<IActionResult> Borrow(int id)
-    // {
-    //     var userId = HttpContext.Session.GetInt32("UserId");
-    //     if (!userId.HasValue)
-    //     {
-    //         return RedirectToAction("Login", "Account");
-    //     }
-    //
-    //     var book = await _bookDAL.GetBookByIdAsync(id);
-    //     if (book == null)
-    //     {
-    //         return NotFound();
-    //     }
-    //
-    //     var borrow = new BorrowModel
-    //     {
-    //         BookId = book.Id,
-    //         UserId = userId.Value,
-    //         StartDate = DateTime.UtcNow,
-    //         EndDate = DateTime.UtcNow.AddDays(30), // Default borrow period of 14 day
-    //         BorrowPrice = book.BorrowPrice ?? 0
-    //     };
-    //
-    //     await _borrowDAL.CreateBorrowAsync(borrow);
-    //     return RedirectToAction("UserHomePage");
-    // }
 }

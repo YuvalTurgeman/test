@@ -25,7 +25,7 @@
 
                         <div class="mb-3">
                             <label asp-for="Genre" class="form-label">Genre</label>
-                            <input asp-for="Genre" class="form-control" />
+                            <select asp-for="Genre" class="form-control" asp-items="Html.GetEnumSelectList<test.Enums.Genre>()"></select>
                             <span asp-validation-for="Genre" class="text-danger"></span>
                         </div>
 

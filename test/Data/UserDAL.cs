@@ -146,5 +146,25 @@ namespace test.Data
             await _context.SaveChangesAsync();
             return true;
         }
+        
+        // Reset Password Tokens
+        public async Task SaveResetTokenAsync(string email, string token, DateTime expiration)
+        {
+            var user = await _context.users.FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+            if (user == null) return;
+
+            user.ResetToken = token;
+            user.ResetTokenExpires = expiration;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<User> ValidateResetTokenAsync(string email, string token)
+        {
+            return await _context.users.FirstOrDefaultAsync(u =>
+                u.Email.ToLower() == email.ToLower() &&
+                u.ResetToken == token &&
+                u.ResetTokenExpires > DateTime.UtcNow);
+        }
+
     }
 }
