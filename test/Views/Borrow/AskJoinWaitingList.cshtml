@@ -15,10 +15,6 @@
                     Current queue: <strong>@Model.PeopleInQueue @(Model.PeopleInQueue == 1 ? "person" : "people")</strong>
                 </div>
                 <div class="mb-2">
-                    <i class="bi bi-book-fill me-2"></i>
-                    Total copies available for borrowing: <strong>@Model.TotalCopies</strong>
-                </div>
-                <div class="mb-2">
                     <i class="bi bi-clock-fill me-2"></i>
                     Estimated wait time: <strong>@Model.EstimatedWaitDays @(Model.EstimatedWaitDays == 1 ? "day" : "days")</strong>
                 </div>

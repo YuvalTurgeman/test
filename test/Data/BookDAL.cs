@@ -27,7 +27,25 @@ namespace test.Data
                 .Include(b => b.Discounts)
                 .Include(b => b.Borrows)
                 .Include(b => b.WaitingList)
+                .AsNoTracking()
                 .ToListAsync();
+        }
+
+        public async Task<decimal> GetCurrentPriceAsync(int bookId)
+        {
+            var book = await GetBookByIdAsync(bookId);
+            if (book == null || !book.PurchasePrice.HasValue)
+                return 0;
+
+            var activeDiscount = book.Discounts
+                .FirstOrDefault(d => d.IsActive && 
+                                     d.StartDate.ToUniversalTime() <= DateTime.UtcNow && 
+                                     d.EndDate.ToUniversalTime() > DateTime.UtcNow);
+
+            if (activeDiscount == null)
+                return book.PurchasePrice.Value;
+
+            return book.PurchasePrice.Value * (1 - activeDiscount.DiscountAmount / 100);
         }
 
         public async Task<BookModel> GetBookByIdAsync(int id)
@@ -106,19 +124,6 @@ namespace test.Data
             return true;
         }
 
-        // Availability Methods
-        public async Task<bool> IsBookAvailableForBorrowAsync(int bookId)
-        {
-            var book = await GetBookByIdAsync(bookId);
-            if (book == null || book.IsBuyOnly)
-                return false;
-
-            var activeBorrows = await _context.Borrows
-                .CountAsync(b => b.BookId == bookId && !b.IsReturned);
-
-            return activeBorrows < book.TotalCopies;
-        }
-
         public async Task<int> GetAvailableCopiesAsync(int bookId)
         {
             var book = await GetBookByIdAsync(bookId);
@@ -142,17 +147,6 @@ namespace test.Data
                 book.AvailableCopies = Math.Max(0, book.TotalCopies - activeBorrows);
                 await UpdateBookAsync(book);
             }
-        }
-
-        public async Task<bool> CanUserBorrowBookAsync(int userId, int bookId)
-        {
-            if (!await IsBookAvailableForBorrowAsync(bookId))
-                return false;
-
-            var activeUserBorrows = await _context.Borrows
-                .CountAsync(b => b.UserId == userId && !b.IsReturned);
-
-            return activeUserBorrows < 3;
         }
     }
 }

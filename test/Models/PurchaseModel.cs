@@ -17,8 +17,7 @@ namespace test.Models
 
         [Required]
         public DateTime PurchaseDate { get; set; } = DateTime.UtcNow;
-
-        // You might want to store the final price after discount
+        public int Quantity { get; set; } = 1;
         [Required]
         public decimal FinalPrice { get; set; }
 
@@ -30,12 +29,13 @@ namespace test.Models
         public virtual User User { get; set; }
 
         public int? DiscountId { get; set; }
+
         [ForeignKey("DiscountId")]
         public virtual DiscountModel Discount { get; set; }
 
         // Many-to-many relationship with Borrows
         public virtual ICollection<BorrowModel> Borrows { get; set; }
-        // Add this property to PurchaseModel.cs
+        
         public bool IsHidden { get; set; } = false;
     }
 }

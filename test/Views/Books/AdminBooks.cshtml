@@ -1,4 +1,4 @@
-@using Microsoft.AspNetCore.Mvc.TagHelpers
+@*@using Microsoft.AspNetCore.Mvc.TagHelpers
 @model IEnumerable<test.Models.BookModel>
 
 <h1>Manage Books</h1>
@@ -17,50 +17,256 @@
         <th>Age Limit</th>
         <th>Formats</th>
         <th>Is Buy Only</th>
+        <th>Discount</th>
         <th>Actions</th>
     </tr>
     </thead>
     <tbody>
     @foreach (var book in Model)
     {
-    <tr>
-        <td>@Html.Encode(book.Title)</td>
-        <td>
-            @if (!string.IsNullOrEmpty(book.CoverImage))
-            {
-            <img src="@Html.Encode(book.CoverImage)" alt="@Html.Encode(book.Title) Cover" style="width: 50px; height: auto;" />
-            }
-            else
-            {
-            <span>No Image</span>
-            }
-        </td>
-        <td>@Html.Encode(book.Genre)</td>
-        <td>@Html.Encode(book.Author)</td>
-        <td>@Html.Encode(book.Publisher)</td>
-        <td>@book.PurchasePrice?.ToString("C", System.Globalization.CultureInfo.CurrentCulture) ?? "N/A"</td>
-        <td>@book.BorrowPrice?.ToString("C", System.Globalization.CultureInfo.CurrentCulture) ?? "N/A"</td>
-        <td>@book.YearPublished?.ToString() ?? "N/A"</td>
-        <td>@Html.Encode(book.AgeLimit) ?? "N/A"</td>
-        <td>@Html.Encode(book.Formats) ?? "N/A"</td>
-        <td>@(book.IsBuyOnly ? "Yes" : "No")</td>
-        <td>
-            <a href="@Url.Action("Edit", "Books", new { id = book.Id })" class="btn btn-primary" aria-label="Edit @book.Title">Edit</a>
-            <form asp-action="DeleteConfirmed" asp-route-id="@book.Id" method="post" style="display:inline;" onsubmit="return confirmDelete();">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-danger" aria-label="Delete @book.Title">Delete</button>
-            </form>
+        var activeDiscount = book.Discounts?
+            .FirstOrDefault(d => d.IsActive &&
+                                 d.StartDate.ToUniversalTime() <= DateTime.UtcNow &&
+                                 d.EndDate.ToUniversalTime() > DateTime.UtcNow);
 
-            <script>
-                function confirmDelete() {
-                    return confirm("Are you sure you want to delete this book?");
+        var hasDiscount = activeDiscount != null;
+        var originalPrice = book.PurchasePrice ?? 0;
+        var discountedPrice = hasDiscount
+            ? originalPrice * (1 - activeDiscount.DiscountAmount / 100)
+            : originalPrice;
+
+        <tr>
+            <td>@Html.Encode(book.Title)</td>
+            <td>
+                @if (!string.IsNullOrEmpty(book.CoverImage))
+                {
+                    <img src="@Html.Encode(book.CoverImage)" alt="@Html.Encode(book.Title) Cover" style="width: 50px; height: auto;" />
                 }
-            </script>
+                else
+                {
+                    <span>No Image</span>
+                }
+            </td>
+            <td>@Html.Encode(book.Genre)</td>
+            <td>@Html.Encode(book.Author)</td>
+            <td>@Html.Encode(book.Publisher)</td>
+            <td>
+                @if (hasDiscount)
+                {
+                    <div>
+                        <span class="text-muted text-decoration-line-through">
+                            @originalPrice.ToString("C", System.Globalization.CultureInfo.CurrentCulture)
+                        </span>
+                        <span class="text-danger ms-2">
+                            @discountedPrice.ToString("C", System.Globalization.CultureInfo.CurrentCulture)
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    @(book.PurchasePrice?.ToString("C", System.Globalization.CultureInfo.CurrentCulture) ?? "N/A")
+                }
+            </td>
+            <td>@book.BorrowPrice?.ToString("C", System.Globalization.CultureInfo.CurrentCulture) ?? "N/A"</td>
+            <td>@book.YearPublished?.ToString() ?? "N/A"</td>
+            <td>@Html.Encode(book.AgeLimit) ?? "N/A"</td>
+            <td>@Html.Encode(book.Formats) ?? "N/A"</td>
+            <td>@(book.IsBuyOnly ? "Yes" : "No")</td>
+            <td>
+                @if (hasDiscount)
+                {
+                    <div>
+                        <span class="badge bg-success">@activeDiscount.DiscountAmount%</span>
+                        <small class="d-block text-muted">
+                            Until @activeDiscount.EndDate.ToLocalTime().ToString("g")
+                        </small>
+                    </div>
+                }
+                else
+                {
+                    <span>No discount</span>
+                }
+            </td>
+            <td>
+                <a href="@Url.Action("Edit", "Books", new { id = book.Id })" class="btn btn-primary btn-sm" aria-label="Edit @book.Title">Edit</a>
+                <form asp-action="DeleteConfirmed" asp-route-id="@book.Id" method="post" style="display:inline;" onsubmit="return confirmDelete();">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger btn-sm" aria-label="Delete @book.Title">Delete</button>
+                </form>
 
-        </td>
-    </tr>
+                @if (!hasDiscount)
+                {
+                    <a href="@Url.Action("Create", "Discount", new { id = book.Id })" class="btn btn-sm btn-success">
+                        Add Discount
+                    </a>
+                }
+                else
+                {
+                    <a asp-controller="Discount" asp-action="Edit" asp-route-id="@activeDiscount.Id"
+                       class="btn btn-warning btn-sm" aria-label="Edit discount for @book.Title">
+                        Edit Discount
+                    </a>
+                }
+            </td>
+        </tr>
     }
     </tbody>
 </table>
 
-<a href="@Url.Action("Create", "Books")" class="btn btn-success">Add New Book</a>
+<div class="mt-3">
+    <a href="@Url.Action("Create", "Books")" class="btn btn-success">Add New Book</a>
+</div>
+
+<script>
+    function confirmDelete() {
+        return confirm("Are you sure you want to delete this book?");
+    }
+</script>*@
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@model IEnumerable<test.Models.BookModel>
+
+<div class="container-fluid">
+   <h1 class="mb-4">Manage Books</h1>
+
+   <div class="table-responsive">
+       <table class="table table-hover align-middle">
+           <thead class="table-light">
+               <tr>
+                   <th>Title</th>
+                   <th>Cover</th>
+                   <th>Genre</th>
+                   <th>Author</th>
+                   <th>Publisher</th>
+                   <th>Price</th>
+                   <th>Borrow Price</th>
+                   <th>Year</th>
+                   <th>Age</th>
+                   <th>Format</th>
+                   <th>Buy Only</th>
+                   <th>Discount</th>
+                   <th>Actions</th>
+               </tr>
+           </thead>
+           <tbody>
+               @foreach (var book in Model)
+               {
+                   var activeDiscount = book.Discounts?
+                       .FirstOrDefault(d => d.IsActive &&
+                           d.StartDate.ToUniversalTime() <= DateTime.UtcNow &&
+                           d.EndDate.ToUniversalTime() > DateTime.UtcNow);
+
+                   var hasDiscount = activeDiscount != null;
+                   var originalPrice = book.PurchasePrice ?? 0;
+                   var discountedPrice = hasDiscount
+                       ? originalPrice * (1 - activeDiscount.DiscountAmount / 100)
+                       : originalPrice;
+
+                   <tr>
+                       <td>@book.Title</td>
+                       <td>
+                           @if (!string.IsNullOrEmpty(book.CoverImage))
+                           {
+                               <img src="@book.CoverImage" alt="@book.Title Cover" class="img-thumbnail" style="width: 50px;" />
+                           }
+                           else
+                           {
+                               <div class="bg-light text-center p-2">
+                                   <i class="bi bi-book"></i>
+                               </div>
+                           }
+                       </td>
+                       <td>@book.Genre</td>
+                       <td>@book.Author</td>
+                       <td>@book.Publisher</td>
+                       <td>
+                           @if (hasDiscount)
+                           {
+                               <div>
+                                   <del class="text-muted">
+                                       @originalPrice.ToString("C")
+                                   </del>
+                                   <div class="text-danger fw-bold">
+                                       @discountedPrice.ToString("C")
+                                   </div>
+                               </div>
+                           }
+                           else
+                           {
+                               @(book.PurchasePrice?.ToString("C") ?? "N/A")
+                           }
+                       </td>
+                       <td>@(book.BorrowPrice?.ToString("C") ?? "N/A")</td>
+                       <td>@(book.YearPublished ?? 0)</td>
+                       <td>@(book.AgeLimit ?? "N/A")</td>
+                       <td>@(book.Formats ?? "N/A")</td>
+                       <td>
+                           <span class="badge @(book.IsBuyOnly ? "bg-success" : "bg-secondary")">
+                               @(book.IsBuyOnly ? "Yes" : "No")
+                           </span>
+                       </td>
+                       <td>
+                           @if (hasDiscount)
+                           {
+                               <div class="text-center">
+                                   <div class="badge bg-success mb-1">
+                                       @activeDiscount.DiscountAmount%
+                                   </div>
+                                   <small class="d-block text-muted">
+                                       Until @activeDiscount.EndDate.ToLocalTime().ToString("MMM dd")
+                                   </small>
+                               </div>
+                           }
+                           else
+                           {
+                               <span class="text-muted">-</span>
+                           }
+                       </td>
+                       <td>
+                           <div class="btn-group btn-group-sm">
+                               <a href="@Url.Action("Edit", "Books", new { id = book.Id })" 
+                                  class="btn btn-outline-primary">
+                                   <i class="bi bi-pencil"></i>
+                               </a>
+                               
+                               <form asp-action="DeleteConfirmed" asp-route-id="@book.Id" 
+                                     method="post" style="display:inline;"
+                                     onsubmit="return confirm('Delete @book.Title?');">
+                                   @Html.AntiForgeryToken()
+                                   <button type="submit" class="btn btn-outline-danger">
+                                       <i class="bi bi-trash"></i>
+                                   </button>
+                               </form>
+
+                               @if (!hasDiscount)
+                               {
+                                   <a href="@Url.Action("Create", "Discount", new { id = book.Id })" 
+                                      class="btn btn-outline-success">
+                                       <i class="bi bi-tag"></i>
+                                   </a>
+                               }
+                               else
+                               {
+                                   <a asp-controller="Discount" asp-action="Edit" 
+                                      asp-route-id="@activeDiscount.Id"
+                                      class="btn btn-outline-warning">
+                                       <i class="bi bi-pencil-square"></i>
+                                   </a>
+                               }
+                           </div>
+                       </td>
+                   </tr>
+               }
+           </tbody>
+       </table>
+   </div>
+
+   <div class="mt-4">
+       <a href="@Url.Action("Create", "Books")" class="btn btn-success">
+           <i class="bi bi-plus-circle me-2"></i>Add New Book
+       </a>
+   </div>
+</div>
+
+@section Styles {
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.css">
+}
