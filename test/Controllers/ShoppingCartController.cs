@@ -410,7 +410,27 @@ namespace test.Controllers
 
                         if (item.IsBorrow)
                         {
-                            // Borrow logic (unchanged)
+                            // Create borrow records for each quantity
+                            for (int i = 0; i < item.Quantity; i++)
+                            {
+                                var borrow = new BorrowModel
+                                {
+                                    BookId = item.BookId,
+                                    UserId = userId,
+                                    StartDate = DateTime.UtcNow,
+                                    EndDate = DateTime.UtcNow.AddDays(30), // 30-day borrow period
+                                    BorrowPrice = item.FinalPrice ?? 0,
+                                    IsReturned = false
+                                };
+
+                                var createdBorrow = await _borrowDAL.CreateBorrowAsync(borrow);
+                
+                                // Update available copies
+                                await _bookDAL.UpdateAvailableCopiesAsync(item.BookId);
+                
+                                Console.WriteLine($"Created borrow record: {createdBorrow.Id} for book {book.Title}");
+                                borrowedItems.Add((book.Title, item.FinalPrice ?? 0, borrow.EndDate));
+                            }
                         }
                         else
                         {
