@@ -1,0 +1,74 @@
+@* @model List<test.Models.ReviewModel> *@
+@* *@
+@* @{ *@
+@*     ViewData["Title"] = "Showcase Reviews"; *@
+@* } *@
+@* *@
+@* <h2>@ViewData["Title"]</h2> *@
+@* *@
+@* <div class="container mt-4"> *@
+@*     @if (!Model.Any()) *@
+@*     { *@
+@*         <p>No reviews available yet. Be the first to write one!</p> *@
+@*     } *@
+@*     else *@
+@*     { *@
+@*         @foreach (var review in Model) *@
+@*         { *@
+@*             <div class="card mb-3"> *@
+@*                 <div class="card-body"> *@
+@*                     <h5 class="card-title">Rating: @review.Rating/5</h5> *@
+@*                     <p class="card-text">@review.Comment</p> *@
+@*                     <small class="text-muted">Reviewed on @review.CreatedAt.ToShortDateString()</small> *@
+@*                 </div> *@
+@*             </div> *@
+@*         } *@
+@*     } *@
+@* </div> *@
+
+@model List<test.Models.ReviewModel>
+
+@{
+    ViewData["Title"] = "Showcase Reviews";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<div class="container mt-4">
+    <div class="about-section mb-5">
+        <h3>About Us</h3>
+        <p>
+            This website was created by Diana and Yuval as a passion project to bring together a community of book enthusiasts. 
+            We aim to make book browsing, borrowing, and reviewing as seamless as possible.
+        </p>
+        <div class="row mt-3">
+            <div class="col-md-6 text-center">
+                <img src="~/assets/EZT04784.JPG" alt="Creator 1" class="img-fluid rounded-circle" style="max-width: 200px;">
+                <p class="mt-2">Yuval Turgeman</p>
+            </div>
+            <div class="col-md-6 text-center">
+                <img src="~/assets/WhatsApp Image 2025-01-07 at 20.04.32.jpeg" alt="Creator 2" class="img-fluid rounded-circle" style="max-width: 200px;">
+                <p class="mt-2">Diana Yakimov</p>
+            </div>
+        </div>
+    </div>
+
+    <h3>Reviews</h3>
+    @if (!Model.Any())
+    {
+        <p>No reviews available yet. Be the first to write one!</p>
+    }
+    else
+    {
+        @foreach (var review in Model)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Rating: @review.Rating/5</h5>
+                    <p class="card-text">@review.Comment</p>
+                    <small class="text-muted">Reviewed on @review.CreatedAt.ToShortDateString()</small>
+                </div>
+            </div>
+        }
+    }
+</div>
