@@ -1,3 +1,4 @@
+using EllipticCurve.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore; 
 using test.Data;
@@ -159,41 +160,87 @@ public class BooksController : Controller
 
     
 
+    // [HttpGet("UserHomePage")]
+    // public async Task<IActionResult> UserHomePage(
+    //     string searchTitle = null,
+    //     string searchAuthor = null,
+    //     int? searchYear = null,
+    //     bool? discountedOnly = null,
+    //     Genre? genre = null, // Add the genre filter
+    //     string sortBy = null,
+    //     string sortOrder = "asc") // Default to ascending order
+    // {
+    //     // Determine the sorting direction
+    //     bool ascending = sortOrder?.ToLower() == "asc";
+    //     
+    //
+    //
+    //     // Fetch books with filtering and sorting
+    //     var books = await _bookDAL.GetBooksAsync(
+    //         searchTitle: searchTitle,
+    //         searchAuthor: searchAuthor,
+    //         searchYear: searchYear,
+    //         discountedOnly: discountedOnly,
+    //         genre: genre, // Pass the genre filter
+    //         sortBy: sortBy,
+    //         ascending: ascending
+    //     );
+    //
+    //     // Pass filter and sort parameters back to the view
+    //     ViewData["SearchTitle"] = searchTitle;
+    //     ViewData["SearchAuthor"] = searchAuthor;
+    //     ViewData["Year"] = searchYear;
+    //     ViewData["Discounted"] = discountedOnly;
+    //     ViewData["Genre"] = genre; // Add genre to ViewData
+    //     ViewData["SortBy"] = sortBy;
+    //     ViewData["SortOrder"] = sortOrder;
+    //
+    //     return View(books);
+    // }
+    
     [HttpGet("UserHomePage")]
     public async Task<IActionResult> UserHomePage(
         string searchTitle = null,
         string searchAuthor = null,
         int? searchYear = null,
         bool? discountedOnly = null,
-        Genre? genre = null, // Add the genre filter
+        Genre? genre = null,
         string sortBy = null,
-        string sortOrder = "asc") // Default to ascending order
+        string sortOrder = "asc")
     {
-        // Determine the sorting direction
         bool ascending = sortOrder?.ToLower() == "asc";
-        
 
-
-        // Fetch books with filtering and sorting
         var books = await _bookDAL.GetBooksAsync(
             searchTitle: searchTitle,
             searchAuthor: searchAuthor,
             searchYear: searchYear,
             discountedOnly: discountedOnly,
-            genre: genre, // Pass the genre filter
+            genre: genre,
             sortBy: sortBy,
             ascending: ascending
         );
 
-        // Pass filter and sort parameters back to the view
+        // Calculate the effective price for each book
+        var discountMap = new Dictionary<int, decimal>();
+        foreach (var book in books)
+        {
+            Console.WriteLine(book.PurchasePrice);
+            var discountPrice = await _bookDAL.GetEffectivePurchasePriceAsync(book.Id);
+            discountMap.Add(book.Id, (int)discountPrice.Value);
+            Console.WriteLine(book.PurchasePrice);
+        }
+
         ViewData["SearchTitle"] = searchTitle;
         ViewData["SearchAuthor"] = searchAuthor;
         ViewData["Year"] = searchYear;
         ViewData["Discounted"] = discountedOnly;
-        ViewData["Genre"] = genre; // Add genre to ViewData
+        ViewData["Genre"] = genre;
         ViewData["SortBy"] = sortBy;
         ViewData["SortOrder"] = sortOrder;
 
-        return View(books);
+        var model = (books, discountMap);
+
+        return View(model);
     }
+
 }
