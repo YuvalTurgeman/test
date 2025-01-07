@@ -1,3 +1,54 @@
+@* $1$ <!DOCTYPE html> #1# *@
+@* $1$ <html lang="en"> #1# *@
+@* $1$ <head> #1# *@
+@* $1$     <meta charset="utf-8" /> #1# *@
+@* $1$     <meta name="viewport" content="width=device-width, initial-scale=1.0" /> #1# *@
+@* $1$     <title>@ViewData["Title"] DigiReads</title> #1# *@
+@* $1$     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" /> #1# *@
+@* $1$     @RenderSection("Styles", required: false) <!-- Add this line --> #1# *@
+@* $1$ </head> #1# *@
+@* $1$ <body> #1# *@
+@* $1$ <header> #1# *@
+@* $1$     <nav class="navbar navbar-expand-lg navbar-dark bg-danger"> #1# *@
+@* $1$         <div class="container-fluid"> #1# *@
+@* $1$             <a class="navbar-brand" asp-controller="Home" asp-action="Index">DigiReads</a> #1# *@
+@* $1$             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"> #1# *@
+@* $1$                 <span class="navbar-toggler-icon"></span> #1# *@
+@* $1$             </button> #1# *@
+@* $1$             <div class="collapse navbar-collapse" id="navbarNav"> #1# *@
+@* $1$                 <ul class="navbar-nav"> #1# *@
+@* $1$                     <li class="nav-item"> #1# *@
+@* $1$                         <a class="nav-link" asp-controller="Books" asp-action="AdminBooks">Manage Books</a> #1# *@
+@* $1$                     </li> #1# *@
+@* $1$                     <li class="nav-item"> #1# *@
+@* $1$                         <a class="nav-link" asp-controller="Account" asp-action="AdminUserManagement">Manage Users</a> #1# *@
+@* $1$                     </li> #1# *@
+@* $1$                     <li class="nav-item"> #1# *@
+@* $1$                         <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline"> #1# *@
+@* $1$                             @Html.AntiForgeryToken() #1# *@
+@* $1$                             <button type="submit" class="btn btn-link nav-link">Logout</button> #1# *@
+@* $1$                         </form> #1# *@
+@* $1$                     </li> #1# *@
+@* $1$                 </ul> #1# *@
+@* $1$             </div> #1# *@
+@* $1$         </div> #1# *@
+@* $1$     </nav> #1# *@
+@* $1$ </header> #1# *@
+@* $1$ <div class="container"> #1# *@
+@* $1$     @RenderBody() #1# *@
+@* $1$ </div> #1# *@
+@* $1$ <footer class="text-center mt-4"> #1# *@
+@* $1$     <p>&copy; 2024 DigiReads - Welcome, Admin!</p> #1# *@
+@* $1$ </footer> #1# *@
+@* $1$ #1# *@
+@* $1$ <script src="~/lib/jquery/dist/jquery.min.js"></script> #1# *@
+@* $1$ <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script> #1# *@
+@* $1$ <script src="~/js/site.js" asp-append-version="true"></script> #1# *@
+@* $1$ <script src="lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script> #1# *@
+@* $1$ @await RenderSectionAsync("Scripts", required: false) #1# *@
+@* $1$ </body> #1# *@
+@* $1$ </html> #1# *@
+@* *@
 @* <!DOCTYPE html> *@
 @* <html lang="en"> *@
 @* <head> *@
@@ -16,20 +67,17 @@
 @*                 <span class="navbar-toggler-icon"></span> *@
 @*             </button> *@
 @*             <div class="collapse navbar-collapse" id="navbarNav"> *@
-@*                 <ul class="navbar-nav"> *@
+@*                 <ul class="navbar-nav me-auto"> *@
 @*                     <li class="nav-item"> *@
 @*                         <a class="nav-link" asp-controller="Books" asp-action="AdminBooks">Manage Books</a> *@
 @*                     </li> *@
 @*                     <li class="nav-item"> *@
 @*                         <a class="nav-link" asp-controller="Account" asp-action="AdminUserManagement">Manage Users</a> *@
 @*                     </li> *@
-@*                     <li class="nav-item"> *@
-@*                         <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline"> *@
-@*                             @Html.AntiForgeryToken() *@
-@*                             <button type="submit" class="btn btn-link nav-link">Logout</button> *@
-@*                         </form> *@
-@*                     </li> *@
 @*                 </ul> *@
+@*                 <div class="d-flex"> *@
+@*                     <button class="btn btn-warning btn-sm" id="logoutButton">Logout</button> *@
+@*                 </div> *@
 @*             </div> *@
 @*         </div> *@
 @*     </nav> *@
@@ -45,6 +93,21 @@
 @* <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script> *@
 @* <script src="~/js/site.js" asp-append-version="true"></script> *@
 @* <script src="lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script> *@
+@* *@
+@* <!-- Confirmation Popup --> *@
+@* <script> *@
+@*     document.getElementById("logoutButton").addEventListener("click", function () { *@
+@*         if (confirm("Are you sure you want to log out?")) { *@
+@*             document.getElementById("logoutForm").submit(); *@
+@*         } *@
+@*     }); *@
+@* </script> *@
+@* *@
+@* <!-- Hidden Logout Form --> *@
+@* <form id="logoutForm" asp-controller="Account" asp-action="Logout" method="post" class="d-none"> *@
+@*     @Html.AntiForgeryToken() *@
+@* </form> *@
+@* *@
 @* @await RenderSectionAsync("Scripts", required: false) *@
 @* </body> *@
 @* </html> *@
@@ -56,7 +119,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] DigiReads</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    @RenderSection("Styles", required: false) <!-- Add this line -->
+    @RenderSection("Styles", required: false)
 </head>
 <body>
 <header>
@@ -76,6 +139,7 @@
                     </li>
                 </ul>
                 <div class="d-flex">
+                    <a class="btn btn-outline-light me-2" asp-controller="Reviews" asp-action="ShowcaseReviews">About + Reviews</a>
                     <button class="btn btn-warning btn-sm" id="logoutButton">Logout</button>
                 </div>
             </div>

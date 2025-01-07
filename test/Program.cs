@@ -36,6 +36,7 @@ builder.Services.AddScoped<DiscountDAL>();
 builder.Services.AddScoped<ShoppingCartDAL>();
 builder.Services.AddScoped<CartItemDAL>();
 builder.Services.AddScoped<WaitingListDAL>();
+builder.Services.AddScoped<ReviewDAL>(); // Register ReviewDAL
 builder.Services.AddHttpContextAccessor();
 
 // Configure EmailService
@@ -83,6 +84,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseSession();
+app.UseStaticFiles(); // Ensure this line is present to serve static files
+
 
 app.MapControllerRoute(
     name: "default",

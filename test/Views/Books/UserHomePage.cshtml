@@ -1,5 +1,141 @@
+@* @using Microsoft.AspNetCore.Mvc.TagHelpers *@
+@* @model IEnumerable<test.Models.BookModel> *@
+@* *@
+@* @{ *@
+@*     string searchTitle = ViewData["SearchTitle"] as string; *@
+@*     string searchAuthor = ViewData["SearchAuthor"] as string; *@
+@*     int? year = ViewData["Year"] as int?; *@
+@*     bool? discounted = ViewData["Discounted"] as bool?; *@
+@*     string sortBy = ViewData["SortBy"] as string; *@
+@*     string sortOrder = ViewData["SortOrder"] as string; *@
+@* *@
+@*     var discountOptions = new SelectList(new[] *@
+@*     { *@
+@*         new { Value = "", Text = "All Books" }, *@
+@*         new { Value = "true", Text = "Discounted" }, *@
+@*         new { Value = "false", Text = "Non-Discounted" } *@
+@*     }, "Value", "Text", ViewData["Discounted"]); *@
+@* } *@
+@* *@
+@* <div class="container mt-4"> *@
+@*     <h1 class="mb-4">Available Books</h1> *@
+@* *@
+@*     <!-- Filtering Form --> *@
+@*     <form asp-controller="Books" asp-action="UserHomePage" method="get" class="mb-4"> *@
+@*         <div class="row g-3"> *@
+@*             <div class="col-md-3"> *@
+@*                 <select name="genre" class="form-control" asp-items="Html.GetEnumSelectList<test.Enums.Genre>()"> *@
+@*                     <option value="" selected>All Genres</option> *@
+@*                 </select> *@
+@*             </div> *@
+@*             <div class="col-md-3"> *@
+@*                 <input type="text" name="searchTitle" value="@searchTitle" class="form-control" placeholder="Search Title"/> *@
+@*             </div> *@
+@*             <div class="col-md-3"> *@
+@*                 <input type="text" name="searchAuthor" value="@searchAuthor" class="form-control" placeholder="Search Author"/> *@
+@*             </div> *@
+@*             <div class="col-md-2"> *@
+@*                 <input type="number" name="searchYear" value="@year" class="form-control" placeholder="Year Published" /> *@
+@*             </div> *@
+@*             <div class="col-md-2"> *@
+@*                 <select name="discountedOnly" class="form-control" asp-items="discountOptions"></select> *@
+@*             </div> *@
+@*             <div class="col-md-2"> *@
+@*                 <button type="submit" class="btn btn-primary w-100">Filter</button> *@
+@*             </div> *@
+@*         </div> *@
+@*     </form> *@
+@* *@
+@*     <!-- Sorting Controls --> *@
+@*     <div class="mb-4 d-flex justify-content-between"> *@
+@*         <h5>Sort By:</h5> *@
+@*         <div> *@
+@*             <a asp-controller="Books" asp-action="UserHomePage" asp-route-sortBy="purchaseprice" asp-route-sortOrder="asc" class="btn btn-link">Purchase Price (Asc)</a> *@
+@*             <a asp-controller="Books" asp-action="UserHomePage" asp-route-sortBy="purchaseprice" asp-route-sortOrder="desc" class="btn btn-link">Purchase Price (Desc)</a> *@
+@*             <a asp-controller="Books" asp-action="UserHomePage" asp-route-sortBy="borrowprice" asp-route-sortOrder="asc" class="btn btn-link">Borrow Price (Asc)</a> *@
+@*             <a asp-controller="Books" asp-action="UserHomePage" asp-route-sortBy="borrowprice" asp-route-sortOrder="desc" class="btn btn-link">Borrow Price (Desc)</a> *@
+@*         </div> *@
+@*     </div> *@
+@* *@
+@*     <!-- Display Books --> *@
+@*     <div class="row g-4"> *@
+@*         @foreach (var book in Model) *@
+@*         { *@
+@*             <div class="col-12 col-md-6 col-lg-4"> *@
+@*                 <div class="card h-100 shadow-sm"> *@
+@*                     @if (!string.IsNullOrEmpty(book.CoverImage)) *@
+@*                     { *@
+@*                         <img src="@book.CoverImage" class="card-img-top object-fit-cover" style="height: 300px;" alt="@book.Title Cover" /> *@
+@*                     } *@
+@*                     else *@
+@*                     { *@
+@*                         <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 300px;"> *@
+@*                             <i class="fas fa-book fa-3x text-muted"></i> *@
+@*                         </div> *@
+@*                     } *@
+@*                     <div class="card-body d-flex flex-column"> *@
+@*                         <!-- Title with Conditional Badge --> *@
+@*                         <h5 class="card-title"> *@
+@*                             @book.Title *@
+@*                             @if (book.IsBuyOnly) *@
+@*                             { *@
+@*                             <span class="badge bg-danger ms-2">Purchase Only</span> *@
+@*                             } *@
+@*                         </h5> *@
+@*                         <p class="card-text text-muted mb-2">by @book.Author</p> *@
+@*                         <p class="card-text text-muted">Published: @book.YearPublished</p> *@
+@*                         <p class="card-text text-muted">Purchase Price: @(book.PurchasePrice.HasValue ? book.PurchasePrice.Value.ToString("C") : "N/A")</p> *@
+@*                         <p class="card-text text-muted">Borrow Price: @(book.BorrowPrice.HasValue ? book.BorrowPrice.Value.ToString("C") : "N/A")</p> *@
+@*                         <p class="card-text text-muted">Genre: @(book.Genre.ToString())</p> *@
+@*                          *@
+@*                         <div class="d-grid gap-2 mt-auto"> *@
+@*                             <!-- Add to Cart --> *@
+@*                             <form asp-controller="ShoppingCart" asp-action="AddToCart" method="post" class="w-100"> *@
+@*                                 @Html.AntiForgeryToken() *@
+@*                                 <input type="hidden" name="bookId" value="@book.Id" /> *@
+@*                                 <input type="hidden" name="isBorrow" value="false" /> *@
+@*                                 <button type="submit" class="btn btn-success w-100"> *@
+@*                                     <i class="fas fa-shopping-cart me-2"></i>Add to Cart *@
+@*                                 </button> *@
+@*                             </form> *@
+@* *@
+@*                             <!-- Buy Now --> *@
+@*                             <form asp-controller="ShoppingCart" asp-action="BuyNow" method="post" class="w-100 mt-2"> *@
+@*                                 @Html.AntiForgeryToken() *@
+@*                                 <input type="hidden" name="bookId" value="@book.Id" /> *@
+@*                                 <button type="submit" class="btn btn-primary w-100"> *@
+@*                                     <i class="fas fa-credit-card me-2"></i>Buy Now *@
+@*                                 </button> *@
+@*                             </form> *@
+@*                              *@
+@*                             <!-- Borrow --> *@
+@*                             <!-- Check the IsBuyOnly field --> *@
+@*                             @if (!book.IsBuyOnly)  *@
+@*                             { *@
+@*                             <form asp-controller="Borrow" asp-action="InitiateBorrow" asp-route-id="@book.Id" method="post" class="w-100 mt-2"> *@
+@*                             @Html.AntiForgeryToken() *@
+@*                             <button type="submit" class="btn btn-warning w-100"> *@
+@*                             <i class="fas fa-book-reader me-2"></i>Borrow *@
+@*                             </button> *@
+@*                             </form> *@
+@*                             } *@
+@*                         </div> *@
+@*                     </div> *@
+@*                 </div> *@
+@*             </div> *@
+@*         } *@
+@*     </div> *@
+@* </div> *@
+@* *@
+@* *@
+@* *@
+
+
 @using Microsoft.AspNetCore.Mvc.TagHelpers
-@model IEnumerable<test.Models.BookModel>
+@* @model IEnumerable<test.Models.BookModel> *@
+@model (List<test.Models.BookModel>, Dictionary<int, decimal>)
+
+
 
 @{
     string searchTitle = ViewData["SearchTitle"] as string;
@@ -35,7 +171,7 @@
                 <input type="text" name="searchAuthor" value="@searchAuthor" class="form-control" placeholder="Search Author"/>
             </div>
             <div class="col-md-2">
-                <input type="number" name="year" value="@year" class="form-control" placeholder="Year Published"/>
+                <input type="number" name="searchYear" value="@year" class="form-control" placeholder="Year Published"/>
             </div>
             <div class="col-md-2">
                 <select name="discountedOnly" class="form-control" asp-items="discountOptions"></select>
@@ -57,75 +193,193 @@
         </div>
     </div>
 
+    
+    
+    @* <!-- Display Books --> *@
+    @* <div class="row g-4"> *@
+    @*     @foreach (var book in Model) *@
+    @*     { *@
+    @*         var activeDiscount = book.Discounts.FirstOrDefault(d => d.IsActive && d.StartDate <= DateTime.UtcNow && d.EndDate >= DateTime.UtcNow); *@
+    @*         var discountedPrice = activeDiscount != null ? book.PurchasePrice * (1 - activeDiscount.DiscountAmount / 100) : null; *@
+    @* *@
+    @*         <div class="col-12 col-md-6 col-lg-4"> *@
+    @*             <div class="card h-100 shadow-sm"> *@
+    @*                 @if (!string.IsNullOrEmpty(book.CoverImage)) *@
+    @*                 { *@
+    @*                     <img src="@book.CoverImage" class="card-img-top object-fit-cover" style="height: 300px;" alt="@book.Title Cover" /> *@
+    @*                 } *@
+    @*                 else *@
+    @*                 { *@
+    @*                     <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 300px;"> *@
+    @*                         <i class="fas fa-book fa-3x text-muted"></i> *@
+    @*                     </div> *@
+    @*                 } *@
+    @*                 <div class="card-body d-flex flex-column"> *@
+    @*                     <!-- Title with Conditional Badge --> *@
+    @*                     <h5 class="card-title"> *@
+    @*                         @book.Title *@
+    @*                         @if (book.IsBuyOnly) *@
+    @*                         { *@
+    @*                             <span class="badge bg-danger ms-2">Purchase Only</span> *@
+    @*                         } *@
+    @*                     </h5> *@
+    @*                     <p class="card-text text-muted mb-2">by @book.Author</p> *@
+    @*                     <p class="card-text text-muted">Published: @book.YearPublished</p> *@
+    @* *@
+    @*                     <!-- Price Section --> *@
+    @*                     <p class="card-text"> *@
+    @*                         @if (activeDiscount != null) *@
+    @*                         { *@
+    @*                             <span class="text-danger h5"> *@
+    @*                                 @discountedPrice.Value.ToString("C") *@
+    @*                             </span> *@
+    @*                             <span class="text-muted text-decoration-line-through"> *@
+    @*                                 @book.PurchasePrice?.ToString("C") *@
+    @*                             </span> *@
+    @*                         } *@
+    @*                         else *@
+    @*                         { *@
+    @*                             <span class="h5"> *@
+    @*                                 @book.PurchasePrice?.ToString("C") *@
+    @*                             </span> *@
+    @*                         } *@
+    @*                     </p> *@
+    @* *@
+    @*                     <p class="card-text text-muted">Borrow Price: @(book.BorrowPrice.HasValue ? book.BorrowPrice.Value.ToString("C") : "N/A")</p> *@
+    @*                     <p class="card-text text-muted">Genre: @(book.Genre.ToString())</p> *@
+    @*                      *@
+    @*                     <div class="d-grid gap-2 mt-auto"> *@
+    @*                         <!-- Add to Cart --> *@
+    @*                         <form asp-controller="ShoppingCart" asp-action="AddToCart" method="post" class="w-100"> *@
+    @*                             @Html.AntiForgeryToken() *@
+    @*                             <input type="hidden" name="bookId" value="@book.Id" /> *@
+    @*                             <input type="hidden" name="isBorrow" value="false" /> *@
+    @*                             <button type="submit" class="btn btn-success w-100"> *@
+    @*                                 <i class="fas fa-shopping-cart me-2"></i>Add to Cart *@
+    @*                             </button> *@
+    @*                         </form> *@
+    @* *@
+    @*                         <!-- Buy Now --> *@
+    @*                         <form asp-controller="ShoppingCart" asp-action="BuyNow" method="post" class="w-100 mt-2"> *@
+    @*                             @Html.AntiForgeryToken() *@
+    @*                             <input type="hidden" name="bookId" value="@book.Id" /> *@
+    @*                             <button type="submit" class="btn btn-primary w-100"> *@
+    @*                                 <i class="fas fa-credit-card me-2"></i>Buy Now *@
+    @*                             </button> *@
+    @*                         </form> *@
+    @*                          *@
+    @*                         <!-- Borrow --> *@
+    @*                         @if (!book.IsBuyOnly)  *@
+    @*                         { *@
+    @*                             <form asp-controller="Borrow" asp-action="InitiateBorrow" asp-route-id="@book.Id" method="post" class="w-100 mt-2"> *@
+    @*                                 @Html.AntiForgeryToken() *@
+    @*                                 <button type="submit" class="btn btn-warning w-100"> *@
+    @*                                     <i class="fas fa-book-reader me-2"></i>Borrow *@
+    @*                                 </button> *@
+    @*                             </form> *@
+    @*                         } *@
+    @*                     </div> *@
+    @*                 </div> *@
+    @*             </div> *@
+    @*         </div> *@
+    @*     } *@
+    @* </div> *@
+
     <!-- Display Books -->
     <div class="row g-4">
-        @foreach (var book in Model)
+        @foreach (var book in Model.Item1)
         {
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="card h-100 shadow-sm">
-                    @if (!string.IsNullOrEmpty(book.CoverImage))
-                    {
-                        <img src="@book.CoverImage" class="card-img-top object-fit-cover" style="height: 300px;" alt="@book.Title Cover" />
-                    }
-                    else
-                    {
-                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 300px;">
-                            <i class="fas fa-book fa-3x text-muted"></i>
-                        </div>
-                    }
-                    <div class="card-body d-flex flex-column">
-                        <!-- Title with Conditional Badge -->
-                        <h5 class="card-title">
-                            @book.Title
-                            @if (book.IsBuyOnly)
-                            {
-                            <span class="badge bg-danger ms-2">Purchase Only</span>
-                            }
-                        </h5>
-                        <p class="card-text text-muted mb-2">by @book.Author</p>
-                        <p class="card-text text-muted">Published: @book.YearPublished</p>
-                        <p class="card-text text-muted">Purchase Price: @(book.PurchasePrice.HasValue ? book.PurchasePrice.Value.ToString("C") : "N/A")</p>
-                        <p class="card-text text-muted">Borrow Price: @(book.BorrowPrice.HasValue ? book.BorrowPrice.Value.ToString("C") : "N/A")</p>
-                        <p class="card-text text-muted">Genre: @(book.Genre.ToString())</p>
-                        
-                        <div class="d-grid gap-2 mt-auto">
-                            <!-- Add to Cart -->
-                            <form asp-controller="ShoppingCart" asp-action="AddToCart" method="post" class="w-100">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="bookId" value="@book.Id" />
-                                <input type="hidden" name="isBorrow" value="false" />
-                                <button type="submit" class="btn btn-success w-100">
-                                    <i class="fas fa-shopping-cart me-2"></i>Add to Cart
-                                </button>
-                            </form>
+            var originalPrice = book.PurchasePrice;
+        // Get the active discount
+        // var activeDiscount = book.Discounts.FirstOrDefault(d => d.IsActive && d.StartDate <= DateTime.UtcNow && d.EndDate >= DateTime.UtcNow);
+        var activeDiscount = book.Discounts.FirstOrDefault(d => d.IsActive && d.StartDate <= DateTime.UtcNow && d.EndDate >= DateTime.UtcNow);
+        decimal? discountedPrice = activeDiscount != null && Model.Item2.ContainsKey(book.Id)
+            ? Model.Item2[book.Id]
+            : null;
+        
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+                @if (!string.IsNullOrEmpty(book.CoverImage))
+                {
+                <img src="@book.CoverImage" class="card-img-top object-fit-cover" style="height: 300px;" alt="@book.Title Cover" />
+                }
+                else
+                {
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 300px;">
+                    <i class="fas fa-book fa-3x text-muted"></i>
+                </div>
+                }
+                <div class="card-body d-flex flex-column">
+                    <!-- Title with Conditional Badge -->
+                    <h5 class="card-title">
+                        @book.Title
+                        @if (book.IsBuyOnly)
+                        {
+                        <span class="badge bg-danger ms-2">Purchase Only</span>
+                        }
+                    </h5>
+                    <p class="card-text text-muted mb-2">by @book.Author</p>
+                    <p class="card-text text-muted">Published: @book.YearPublished</p>
 
-                            <!-- Buy Now -->
-                            <form asp-controller="ShoppingCart" asp-action="BuyNow" method="post" class="w-100 mt-2">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="bookId" value="@book.Id" />
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="fas fa-credit-card me-2"></i>Buy Now
-                                </button>
-                            </form>
-                            
-                            <!-- Borrow -->
-                            <!-- Check the IsBuyOnly field -->
-                            @if (!book.IsBuyOnly) 
-                            {
-                            <form asp-controller="Borrow" asp-action="InitiateBorrow" asp-route-id="@book.Id" method="post" class="w-100 mt-2">
+                    <!-- Price Section -->
+                    <p class="card-text">
+                        @if (activeDiscount != null)
+                        {
+                        <span class="text-danger h5">
+                                @discountedPrice?.ToString("C")
+                            </span>
+                        <span class="text-muted text-decoration-line-through">
+                                @originalPrice?.ToString("C")
+                            </span>
+                        }
+                        else
+                        {
+                        <span class="h5">
+                                @book.PurchasePrice?.ToString("C")
+                            </span>
+                        }
+                    </p>
+
+                    <p class="card-text text-muted">Borrow Price: @(book.BorrowPrice.HasValue ? book.BorrowPrice.Value.ToString("C") : "N/A")</p>
+                    <p class="card-text text-muted">Genre: @(book.Genre.ToString())</p>
+
+                    <div class="d-grid gap-2 mt-auto">
+                        <!-- Add to Cart -->
+                        <form asp-controller="ShoppingCart" asp-action="AddToCart" method="post" class="w-100">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="bookId" value="@book.Id" />
+                            <input type="hidden" name="isBorrow" value="false" />
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                            </button>
+                        </form>
+
+                        <!-- Buy Now -->
+                        <form asp-controller="ShoppingCart" asp-action="BuyNow" method="post" class="w-100 mt-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="bookId" value="@book.Id" />
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-credit-card me-2"></i>Buy Now
+                            </button>
+                        </form>
+
+                        <!-- Borrow -->
+                        @if (!book.IsBuyOnly)
+                        {
+                        <form asp-controller="Borrow" asp-action="InitiateBorrow" asp-route-id="@book.Id" method="post" class="w-100 mt-2">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-warning w-100">
-                            <i class="fas fa-book-reader me-2"></i>Borrow
+                                <i class="fas fa-book-reader me-2"></i>Borrow
                             </button>
-                            </form>
-                            }
-                        </div>
+                        </form>
+                        }
                     </div>
                 </div>
             </div>
+        </div>
         }
     </div>
+
+
+
 </div>
-
-
-

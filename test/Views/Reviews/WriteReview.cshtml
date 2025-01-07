@@ -1,0 +1,25 @@
+@model test.Models.ReviewModel
+
+@{
+    ViewData["Title"] = "Write a Review";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<div class="container mt-4">
+    <form asp-action="WriteReview" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="mb-3">
+            <label for="rating" class="form-label">Rating (1-5):</label>
+            <input type="number" class="form-control" id="rating" name="Rating" value="@Model.Rating" min="1" max="5" required />
+        </div>
+
+        <div class="mb-3">
+            <label for="comment" class="form-label">Comment:</label>
+            <textarea class="form-control" id="comment" name="Comment" rows="4">@Model.Comment</textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>

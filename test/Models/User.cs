@@ -33,6 +33,7 @@ namespace test.Models
         // Navigation properties
         public virtual ICollection<PurchaseModel> Purchases { get; set; }
         public virtual ICollection<BorrowModel> Borrows { get; set; }
+        public virtual ICollection<ReviewModel> Reviews { get; set; } // Added
     }
     
 }
