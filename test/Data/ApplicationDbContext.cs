@@ -13,6 +13,8 @@ namespace test.Data
         public DbSet<CartItemModel> CartItems { get; set; }
         public DbSet<ShoppingCartModel> ShoppingCarts { get; set; }
         public DbSet<WaitingListModel> WaitingList { get; set; }
+        public DbSet<ReviewModel> WebsiteReviews { get; set; } // Added
+
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
@@ -45,6 +47,12 @@ namespace test.Data
                 .WithOne(sc => sc.User)
                 .HasForeignKey<ShoppingCartModel>(sc => sc.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.Reviews) // Added
+                .WithOne(r => r.User)
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Book relationships
             modelBuilder.Entity<BookModel>()
@@ -94,6 +102,13 @@ namespace test.Data
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Review relationships
+            modelBuilder.Entity<ReviewModel>() // Added
+                .HasOne(r => r.User)
+                .WithMany(u => u.Reviews)
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Performance Indexes
             modelBuilder.Entity<BookModel>()
                 .HasIndex(b => b.Title);
@@ -120,6 +135,9 @@ namespace test.Data
 
             modelBuilder.Entity<CartItemModel>()
                 .HasIndex(ci => new { ci.ShoppingCartId, ci.BookId });
+
+            modelBuilder.Entity<ReviewModel>() // Added
+                .HasIndex(r => r.UserId);
         }
     }
 }
