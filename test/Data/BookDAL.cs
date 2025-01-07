@@ -98,7 +98,8 @@ namespace test.Data
                 "borrowprice" => ascending ? query.OrderBy(b => b.BorrowPrice) : query.OrderByDescending(b => b.BorrowPrice),
                 _ => query
             };
-
+            
+            Console.WriteLine(query.ToQueryString());
             return await query.ToListAsync();
         }
 
