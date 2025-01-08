@@ -20,6 +20,7 @@ namespace test.Controllers
         private readonly WaitingListDAL _waitingListDAL;
         private readonly PurchaseDAL _purchaseDAL;
         private readonly EmailService _emailService;
+        private readonly DiscountDAL _discountDal;
 
         public ShoppingCartController(
             ShoppingCartDAL cartDAL,

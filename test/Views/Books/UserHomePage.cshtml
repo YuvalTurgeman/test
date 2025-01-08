@@ -1,6 +1,7 @@
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @inject test.Data.RatingDAL _ratingDAL
-@model (List<test.Models.BookModel>, Dictionary<int, decimal>)
+@model (List<test.Models.BookModel>, Dictionary<int, Tuple<decimal?, decimal?>>)
+
 
 @{
     string searchTitle = ViewData["SearchTitle"] as string;
@@ -28,10 +29,8 @@
         margin-right: 2px;
     }
 
-    .star-rating .bi-star,
     .star-rating .bi-star-half {
-        margin-right: 2px;
-        color: #ddd;
+        color: #ffd700; /* Gold for half stars */
     }
 
     .rating-count {
@@ -78,6 +77,8 @@
             <a asp-controller="Books" asp-action="UserHomePage" asp-route-sortBy="purchaseprice" asp-route-sortOrder="desc" class="btn btn-link">Purchase Price (Desc)</a>
             <a asp-controller="Books" asp-action="UserHomePage" asp-route-sortBy="borrowprice" asp-route-sortOrder="asc" class="btn btn-link">Borrow Price (Asc)</a>
             <a asp-controller="Books" asp-action="UserHomePage" asp-route-sortBy="borrowprice" asp-route-sortOrder="desc" class="btn btn-link">Borrow Price (Desc)</a>
+            <a asp-controller="Books" asp-action="UserHomePage" asp-route-sortBy="rating" asp-route-sortOrder="asc" class="btn btn-link">Rating (Asc)</a>
+            <a asp-controller="Books" asp-action="UserHomePage" asp-route-sortBy="rating" asp-route-sortOrder="desc" class="btn btn-link">Rating (Desc)</a>
         </div>
     </div>
 
@@ -85,17 +86,21 @@
     <div class="row g-4">
         @foreach (var book in Model.Item1)
         {
-            var originalPrice = book.PurchasePrice;
+            var originalPurchasePrice = book.PurchasePrice;
+            var originalBorrowPrice = book.BorrowPrice;
             var activeDiscount = book.Discounts.FirstOrDefault(d => d.IsActive && d.StartDate <= DateTime.UtcNow && d.EndDate >= DateTime.UtcNow);
-            decimal? discountedPrice = activeDiscount != null && Model.Item2.ContainsKey(book.Id)
-                ? Model.Item2[book.Id]
+            decimal? discountedPurchasePrice = activeDiscount != null && Model.Item2.ContainsKey(book.Id)
+                ? Model.Item2[book.Id].Item1
+                : null;
+            decimal? discountedBorrowPrice = activeDiscount != null && Model.Item2.ContainsKey(book.Id)
+                ? Model.Item2[book.Id].Item2
                 : null;
 
             <div class="col-12 col-md-6 col-lg-4">
                 <div class="card h-100 shadow-sm">
                     @if (!string.IsNullOrEmpty(book.CoverImage))
                     {
-                        <img src="@book.CoverImage" class="card-img-top object-fit-cover" style="height: 300px;" alt="@book.Title Cover" />
+                        <img src="@book.CoverImage" class="card-img-top object-fit-cover" style="height: 300px;" alt="@book.Title Cover"/>
                     }
                     else
                     {
@@ -114,30 +119,36 @@
                         </h5>
                         <p class="card-text text-muted mb-2">by @book.Author</p>
 
-                        <!-- Star Rating -->
+
                         <div class="star-rating">
                             @{
-                                var avgRating = await _ratingDAL.GetAverageRating(book.Id);
-                                var fullStars = Math.Floor(avgRating);
-                                var hasHalfStar = avgRating % 1 >= 0.5;
+                                Console.WriteLine("1");
+                                var avgRating = await _ratingDAL.GetAverageRating(book.Id); // Get the average rating
+                                Console.WriteLine(avgRating);
+                                var fullStars = (int)Math.Floor(avgRating); // Number of full stars
+                                Console.WriteLine(fullStars);
+                                var decimalPart = avgRating - fullStars; // Extract the fractional part
+                                Console.WriteLine(decimalPart);
+                                var hasHalfStar = decimalPart >= 0.25 && decimalPart < 0.75; // Whether to display a half star
+                                Console.WriteLine(hasHalfStar);
+                                var emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0); // Calculate remaining empty stars
+                                Console.WriteLine(emptyStars);
                             }
-                            @for (int i = 1; i <= 5; i++)
+                            @for (int i = 1; i <= fullStars; i++) // Render full stars
                             {
-                                if (i <= fullStars)
-                                {
-                                    <i class="bi bi-star-fill"></i>
-                                }
-                                else if (i == Math.Ceiling(fullStars) && hasHalfStar)
-                                {
-                                    <i class="bi bi-star-half"></i>
-                                }
-                                else
-                                {
-                                    <i class="bi bi-star"></i>
-                                }
+                                <i class="bi bi-star-fill"></i>
+                            }
+                            @if (hasHalfStar) // Render one half star if needed
+                            {
+                                <i class="bi bi-star-half"></i>
+                            }
+                            @for (int i = 1; i <= emptyStars; i++) // Render empty stars
+                            {
+                                <i class="bi bi-star"></i>
                             }
                             <span class="rating-count">(@avgRating.ToString("F1"))</span>
                         </div>
+
 
                         <p class="card-text text-muted">Published: @book.YearPublished</p>
 
@@ -145,30 +156,38 @@
                         <p class="card-text">
                             @if (activeDiscount != null)
                             {
-                                <span class="text-danger h5">
-                                    @discountedPrice?.ToString("C")
-                                </span>
-                                <span class="text-muted text-decoration-line-through">
-                                    @originalPrice?.ToString("C")
-                                </span>
+                                <p class="text-danger h5">
+                                    <strong>Purchase Price:</strong>
+                                    <span class="text-danger h5">@discountedPurchasePrice?.ToString("C")</span>
+                                    <span class="text-muted text-decoration-line-through">@originalPurchasePrice?.ToString("C")</span>
+                                </p>
+                                <p class="text-danger h5">
+                                    <strong>Borrow Price:</strong>
+                                    <span class="text-danger h5">@discountedBorrowPrice?.ToString("C")</span>
+                                    <span class="text-muted text-decoration-line-through">@originalBorrowPrice?.ToString("C")</span>
+                                </p>
                             }
                             else
                             {
-                                <span class="h5">
-                                    @book.PurchasePrice?.ToString("C")
-                                </span>
+                                <p class="h5">
+                                    <strong>Purchase Price:</strong>
+                                    <span class="h5">@book.PurchasePrice?.ToString("C")</span>
+                                </p>
+                                <p class="h5">
+                                    <strong>Borrow Price:</strong>
+                                    <span class="h5">@book.BorrowPrice?.ToString("C")</span>
+                                </p>
                             }
                         </p>
 
-                        <p class="card-text text-muted">Borrow Price: @(book.BorrowPrice.HasValue ? book.BorrowPrice.Value.ToString("C") : "N/A")</p>
                         <p class="card-text text-muted">Genre: @(book.Genre.ToString())</p>
 
                         <div class="d-grid gap-2 mt-auto">
                             <!-- Add to Cart -->
                             <form asp-controller="ShoppingCart" asp-action="AddToCart" method="post" class="w-100">
                                 @Html.AntiForgeryToken()
-                                <input type="hidden" name="bookId" value="@book.Id" />
-                                <input type="hidden" name="isBorrow" value="false" />
+                                <input type="hidden" name="bookId" value="@book.Id"/>
+                                <input type="hidden" name="isBorrow" value="false"/>
                                 <button type="submit" class="btn btn-success w-100">
                                     <i class="fas fa-shopping-cart me-2"></i>Add to Cart
                                 </button>
@@ -177,7 +196,7 @@
                             <!-- Buy Now -->
                             <form asp-controller="ShoppingCart" asp-action="BuyNow" method="post" class="w-100 mt-2">
                                 @Html.AntiForgeryToken()
-                                <input type="hidden" name="bookId" value="@book.Id" />
+                                <input type="hidden" name="bookId" value="@book.Id"/>
                                 <button type="submit" class="btn btn-primary w-100">
                                     <i class="fas fa-credit-card me-2"></i>Buy Now
                                 </button>

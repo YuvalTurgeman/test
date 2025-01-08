@@ -216,6 +216,25 @@ namespace test.Data
                     : query.OrderByDescending(b => b.BorrowPrice),
                 _ => query
             };
+            
+            if (sortBy == "rating")
+            {
+                var bookRatings = await _context.Books
+                    .Select(b => new
+                    {
+                        b.Id,
+                        AvgRating = _context.Ratings
+                            .Where(r => r.BookId == b.Id)
+                            .Average(r => (double?)r.Value) ?? 0.0
+                    })
+                    .ToListAsync();
+
+                var sortedBookIds = ascending
+                    ? bookRatings.OrderBy(br => br.AvgRating).Select(br => br.Id).ToList()
+                    : bookRatings.OrderByDescending(br => br.AvgRating).Select(br => br.Id).ToList();
+
+                query = query.OrderBy(b => sortedBookIds.IndexOf(b.Id));
+            }
 
             
             var books = await query.ToListAsync();
@@ -332,6 +351,24 @@ namespace test.Data
                 return book.PurchasePrice;
             
             return book.PurchasePrice * (1 - activeDiscount.DiscountAmount / 100);
+        }
+        
+        public async Task<decimal?> GetEffectiveBorrowPriceAsync(int bookId)
+        {
+            var book = await GetBookByIdAsync(bookId);
+            if (book == null || !book.BorrowPrice.HasValue)
+                return null;
+            
+            var activeDiscount = book.Discounts
+                .FirstOrDefault(d =>
+                    d.IsActive &&
+                    d.StartDate <= DateTime.UtcNow &&
+                    d.EndDate >= DateTime.UtcNow);
+            
+            if (activeDiscount == null)
+                return book.BorrowPrice;
+            
+            return book.BorrowPrice * (1 - activeDiscount.DiscountAmount / 100);
         }
 
         public async Task<List<BookModel>> GetBooksWithEffectivePricesAsync()

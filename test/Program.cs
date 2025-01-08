@@ -64,14 +64,14 @@ var app = builder.Build();
 
 // Database initialization
 
-/*
+
 using (var scope = app.Services.CreateScope())
 {
-     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-     dbContext.Database.EnsureDeleted();
-     dbContext.Database.EnsureCreated();
+     // var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+     // dbContext.Database.EnsureDeleted();
+     // dbContext.Database.EnsureCreated();
 }
-*/
+
 
 
 // Configure the HTTP request pipeline.
