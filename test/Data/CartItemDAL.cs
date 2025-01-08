@@ -27,16 +27,20 @@ namespace test.Data
                     throw new InvalidOperationException("This book is only available for purchase");
 
                 // Check if user has reached borrow limit
-                var borrowCount = await _context.CartItems
-                    .CountAsync(ci => ci.ShoppingCart.UserId == item.ShoppingCart.UserId && ci.IsBorrow);
+                var borrowCount = await _context.Borrows
+                    .CountAsync(b => b.UserId == item.ShoppingCart.UserId && !b.IsReturned);
                 if (borrowCount >= 3)
                     throw new InvalidOperationException("Cannot borrow more than 3 books");
 
                 // Check if book has available copies
                 var activeBorrows = await _context.Borrows
                     .CountAsync(b => b.BookId == item.BookId && !b.IsReturned);
-                if (activeBorrows >= 3)
+                if (activeBorrows >= book.TotalCopies)
                     throw new InvalidOperationException("No copies available for borrowing");
+
+                // Update available copies
+                book.AvailableCopies = book.TotalCopies - activeBorrows - 1;
+                await _context.SaveChangesAsync();
             }
 
             // Calculate final price

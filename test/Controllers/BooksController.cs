@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using EllipticCurve.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore; 
@@ -11,14 +12,16 @@ public class BooksController : Controller
     private readonly BookDAL _bookDAL;
     private readonly PurchaseDAL _purchaseDAL;
     private readonly BorrowDAL _borrowDAL;
+    private readonly RatingDAL _ratingDAL;
 
-    public BooksController(BookDAL bookDAL, PurchaseDAL purchaseDAL, BorrowDAL borrowDAL)
+    public BooksController(BookDAL bookDAL, PurchaseDAL purchaseDAL, 
+        BorrowDAL borrowDAL, RatingDAL ratingDAL)
     {
         _bookDAL = bookDAL;
         _purchaseDAL = purchaseDAL;
         _borrowDAL = borrowDAL;
+        _ratingDAL = ratingDAL;
     }
-
     [HttpGet("AdminBooks")]
     public async Task<IActionResult> AdminBooks()
     {
@@ -158,7 +161,56 @@ public class BooksController : Controller
         return View(book);
     }
 
-    
+    [HttpPost("Rate/{bookId}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RateBook(int bookId, [FromForm] int rating)
+    {
+        // Get user ID from claims
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+        {
+            return BadRequest("User not found");
+        }
+
+        Console.WriteLine($"User {userId} attempting to rate book {bookId}");
+
+        // Check if user can rate the book
+        if (!await _ratingDAL.CanUserRateBook(userId, bookId))
+        {
+            return BadRequest("You can only rate books that you have purchased or borrowed.");
+        }
+
+        // Check if user has already rated this book
+        if (await _ratingDAL.HasUserRatedBook(userId, bookId))
+        {
+            return BadRequest("You have already rated this book.");
+        }
+
+        var ratingModel = new RatingModel
+        {
+            BookId = bookId,
+            UserId = userId,
+            Value = rating,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _ratingDAL.AddRating(ratingModel);
+
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+            return Json(new { success = true });
+        }
+
+        return RedirectToAction("MyBorrows", "Borrow");
+    }
+
+// Add this method to get book ratings
+    [HttpGet("Ratings/{bookId}")]
+    public async Task<IActionResult> GetBookRatings(int bookId)
+    {
+        var ratings = await _ratingDAL.GetBookRatings(bookId);
+        return Json(ratings);
+    }
 
     // [HttpGet("UserHomePage")]
     // public async Task<IActionResult> UserHomePage(

@@ -13,7 +13,8 @@ namespace test.Data
         public DbSet<CartItemModel> CartItems { get; set; }
         public DbSet<ShoppingCartModel> ShoppingCarts { get; set; }
         public DbSet<WaitingListModel> WaitingList { get; set; }
-        public DbSet<ReviewModel> WebsiteReviews { get; set; } // Added
+        public DbSet<ReviewModel> WebsiteReviews { get; set; } 
+        public DbSet<RatingModel> Ratings { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
