@@ -64,12 +64,23 @@ namespace test.Controllers
                    return View();
                }
 
+               // Convert input dates to UTC
+               var utcStartDate = DateTime.SpecifyKind(
+                   new DateTime(StartDate.Year, StartDate.Month, StartDate.Day, 0, 0, 0), 
+                   DateTimeKind.Utc);
+        
+               var utcEndDate = DateTime.SpecifyKind(
+                   new DateTime(EndDate.Year, EndDate.Month, EndDate.Day, 23, 59, 59), 
+                   DateTimeKind.Utc);
+
+               Console.WriteLine($"Creating discount with UTC dates: Start={utcStartDate}, End={utcEndDate}");
+
                var discount = new DiscountModel
                {
                    BookId = BookId,
                    DiscountAmount = DiscountAmount,
-                   StartDate = DateTime.SpecifyKind(StartDate, DateTimeKind.Utc),
-                   EndDate = DateTime.SpecifyKind(EndDate, DateTimeKind.Utc),
+                   StartDate = utcStartDate,
+                   EndDate = utcEndDate,
                    IsActive = true
                };
 
@@ -78,6 +89,7 @@ namespace test.Controllers
            }
            catch (Exception ex)
            {
+               Console.WriteLine($"Error creating discount: {ex.Message}");
                ModelState.AddModelError("", $"Error creating discount: {ex.Message}");
                return View();
            }

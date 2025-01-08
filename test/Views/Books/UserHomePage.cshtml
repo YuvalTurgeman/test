@@ -21,16 +21,13 @@
 
 <style>
     .star-rating {
-        color: #ffd700;
         margin: 0.5rem 0;
     }
 
-    .star-rating .bi-star-fill {
+    .star-rating .star {
+        color: #ffd700;
+        font-size: 1.2rem;
         margin-right: 2px;
-    }
-
-    .star-rating .bi-star-half {
-        color: #ffd700; /* Gold for half stars */
     }
 
     .rating-count {
@@ -119,36 +116,28 @@
                         </h5>
                         <p class="card-text text-muted mb-2">by @book.Author</p>
 
-
                         <div class="star-rating">
                             @{
-                                Console.WriteLine("1");
-                                var avgRating = await _ratingDAL.GetAverageRating(book.Id); // Get the average rating
-                                Console.WriteLine(avgRating);
-                                var fullStars = (int)Math.Floor(avgRating); // Number of full stars
-                                Console.WriteLine(fullStars);
-                                var decimalPart = avgRating - fullStars; // Extract the fractional part
-                                Console.WriteLine(decimalPart);
-                                var hasHalfStar = decimalPart >= 0.25 && decimalPart < 0.75; // Whether to display a half star
-                                Console.WriteLine(hasHalfStar);
-                                var emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0); // Calculate remaining empty stars
-                                Console.WriteLine(emptyStars);
+                                var avgRating = await _ratingDAL.GetAverageRating(book.Id);
+                                var fullStars = (int)Math.Floor(avgRating);
+                                var decimalPart = avgRating - fullStars;
+                                var hasHalfStar = decimalPart >= 0.25 && decimalPart < 0.75;
+                                var emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
                             }
-                            @for (int i = 1; i <= fullStars; i++) // Render full stars
+                            @for (int i = 1; i <= fullStars; i++)
                             {
-                                <i class="bi bi-star-fill"></i>
+                                <span class="star">★</span>
                             }
-                            @if (hasHalfStar) // Render one half star if needed
+                            @if (hasHalfStar)
                             {
-                                <i class="bi bi-star-half"></i>
+                                <span class="star">⭐</span>
                             }
-                            @for (int i = 1; i <= emptyStars; i++) // Render empty stars
+                            @for (int i = 1; i <= emptyStars; i++)
                             {
-                                <i class="bi bi-star"></i>
+                                <span class="star">☆</span>
                             }
                             <span class="rating-count">(@avgRating.ToString("F1"))</span>
                         </div>
-
 
                         <p class="card-text text-muted">Published: @book.YearPublished</p>
 
@@ -156,28 +145,28 @@
                         <p class="card-text">
                             @if (activeDiscount != null)
                             {
-                                <p class="text-danger h5">
-                                    <strong>Purchase Price:</strong>
-                                    <span class="text-danger h5">@discountedPurchasePrice?.ToString("C")</span>
-                                    <span class="text-muted text-decoration-line-through">@originalPurchasePrice?.ToString("C")</span>
-                                </p>
-                                <p class="text-danger h5">
-                                    <strong>Borrow Price:</strong>
-                                    <span class="text-danger h5">@discountedBorrowPrice?.ToString("C")</span>
-                                    <span class="text-muted text-decoration-line-through">@originalBorrowPrice?.ToString("C")</span>
-                                </p>
-                            }
-                            else
-                            {
-                                <p class="h5">
-                                    <strong>Purchase Price:</strong>
-                                    <span class="h5">@book.PurchasePrice?.ToString("C")</span>
-                                </p>
-                                <p class="h5">
-                                    <strong>Borrow Price:</strong>
-                                    <span class="h5">@book.BorrowPrice?.ToString("C")</span>
-                                </p>
-                            }
+                            <p class="text-danger h5">
+                                <strong>Purchase Price:</strong>
+                                <span class="text-danger h5">@discountedPurchasePrice?.ToString("C")</span>
+                                <span class="text-muted text-decoration-line-through">@originalPurchasePrice?.ToString("C")</span>
+                            </p>
+                            <p class="text-danger h5">
+                                <strong>Borrow Price:</strong>
+                                <span class="text-danger h5">@discountedBorrowPrice?.ToString("C")</span>
+                                <span class="text-muted text-decoration-line-through">@originalBorrowPrice?.ToString("C")</span>
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="h5">
+                                <strong>Purchase Price:</strong>
+                                <span class="h5">@book.PurchasePrice?.ToString("C")</span>
+                            </p>
+                            <p class="h5">
+                                <strong>Borrow Price:</strong>
+                                <span class="h5">@book.BorrowPrice?.ToString("C")</span>
+                            </p>
+                        }
                         </p>
 
                         <p class="card-text text-muted">Genre: @(book.Genre.ToString())</p>

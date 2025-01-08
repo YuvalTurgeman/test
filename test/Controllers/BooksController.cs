@@ -213,7 +213,6 @@ public class BooksController : Controller
         return RedirectToAction("MyBorrows", "Borrow");
     }
 
-// Add this method to get book ratings
     [HttpGet("Ratings/{bookId}")]
     public async Task<IActionResult> GetBookRatings(int bookId)
     {
@@ -249,22 +248,13 @@ public class BooksController : Controller
 
         foreach (var book in books)
         {
-            Console.WriteLine($"Original Purchase Price for Book {book.Id}: {book.PurchasePrice}");
-            Console.WriteLine($"Original Borrow Price for Book {book.Id}: {book.BorrowPrice}");
-
-            // Get the updated purchase price
+            // Get the effective prices
             var updatedPurchasePrice = await _bookDAL.GetEffectivePurchasePriceAsync(book.Id);
+            var updatedBorrowPrice = await _bookDAL.GetEffectiveBorrowPriceAsync(book.Id);
 
-            // Calculate the updated borrow price (e.g., apply some logic or get it from DAL)
-            var updatedBorrowPrice = await _bookDAL.GetEffectiveBorrowPriceAsync(book.Id); // Replace with actual logic if needed
-
-            // Add both prices to the dictionary
+            // Add to dictionary
             discountMap.Add(book.Id, Tuple.Create(updatedPurchasePrice, updatedBorrowPrice));
-
-            Console.WriteLine($"Updated Purchase Price for Book {book.Id}: {updatedPurchasePrice}");
-            Console.WriteLine($"Updated Borrow Price for Book {book.Id}: {updatedBorrowPrice}");
         }
-
 
         ViewData["SearchTitle"] = searchTitle;
         ViewData["SearchAuthor"] = searchAuthor;
@@ -275,8 +265,6 @@ public class BooksController : Controller
         ViewData["SortOrder"] = sortOrder;
 
         var model = (books, discountMap);
-
         return View(model);
     }
-
 }
