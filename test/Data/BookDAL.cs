@@ -162,85 +162,106 @@ namespace test.Data
 
         
         public async Task<List<BookModel>> GetBooksAsync(
-            string searchTitle = null,
-            string searchAuthor = null,
-            int? searchYear = null,
-            bool? discountedOnly = null,
-            Genre? genre = null,
-            string sortBy = null,
-            bool ascending = true)
+    string searchTitle = null,
+    string searchAuthor = null,
+    int? searchYear = null,
+    bool? discountedOnly = null,
+    Genre? genre = null,
+    string sortBy = null,
+    bool ascending = true)
+{
+    var now = DateTime.UtcNow;
+    var query = _context.Books
+        .Include(b => b.Discounts)
+        .AsQueryable();
+
+    // Apply filters
+    if (!string.IsNullOrEmpty(searchTitle))
+        query = query.Where(b => EF.Functions.Like(b.Title, $"%{searchTitle}%"));
+
+    if (!string.IsNullOrEmpty(searchAuthor))
+        query = query.Where(b => EF.Functions.Like(b.Author, $"%{searchAuthor}%"));
+
+    if (searchYear.HasValue)
+        query = query.Where(b => b.YearPublished == searchYear.Value);
+
+    if (discountedOnly.HasValue)
+    {
+        if (discountedOnly.Value)
         {
-            var query = _context.Books
-                .Include(b => b.Discounts)
-                .AsQueryable();
-
-            // Apply filters
-            if (!string.IsNullOrEmpty(searchTitle))
-                query = query.Where(b => EF.Functions.Like(b.Title, $"%{searchTitle}%"));
-
-            if (!string.IsNullOrEmpty(searchAuthor))
-                query = query.Where(b => EF.Functions.Like(b.Author, $"%{searchAuthor}%"));
-
-            if (searchYear.HasValue)
-                query = query.Where(b => b.YearPublished == searchYear.Value);
-
-            if (discountedOnly.HasValue)
-            {
-                if (discountedOnly.Value)
-                {
-                    query = query.Where(b => b.Discounts.Any(d =>
-                        d.IsActive &&
-                        d.StartDate <= DateTime.UtcNow &&
-                        d.EndDate >= DateTime.UtcNow));
-                }
-                else
-                {
-                    query = query.Where(b => !b.Discounts.Any(d =>
-                        d.IsActive &&
-                        d.StartDate <= DateTime.UtcNow &&
-                        d.EndDate >= DateTime.UtcNow));
-                }
-            }
-
-            if (genre.HasValue)
-                query = query.Where(b => b.Genre == genre.Value);
-
-            // Apply sorting
-            query = sortBy switch
-            {
-                "purchaseprice" => ascending
-                    ? query.OrderBy(b => b.PurchasePrice)
-                    : query.OrderByDescending(b => b.PurchasePrice),
-                "borrowprice" => ascending
-                    ? query.OrderBy(b => b.BorrowPrice)
-                    : query.OrderByDescending(b => b.BorrowPrice),
-                _ => query
-            };
-            
-            if (sortBy == "rating")
-            {
-                var bookRatings = await _context.Books
-                    .Select(b => new
-                    {
-                        b.Id,
-                        AvgRating = _context.Ratings
-                            .Where(r => r.BookId == b.Id)
-                            .Average(r => (double?)r.Value) ?? 0.0
-                    })
-                    .ToListAsync();
-
-                var sortedBookIds = ascending
-                    ? bookRatings.OrderBy(br => br.AvgRating).Select(br => br.Id).ToList()
-                    : bookRatings.OrderByDescending(br => br.AvgRating).Select(br => br.Id).ToList();
-
-                query = query.OrderBy(b => sortedBookIds.IndexOf(b.Id));
-            }
-
-            
-            var books = await query.ToListAsync();
-
-            return books;
+            query = query.Where(b => b.Discounts.Any(d =>
+                d.IsActive &&
+                d.StartDate <= now &&
+                d.EndDate >= now));
         }
+        else
+        {
+            query = query.Where(b => !b.Discounts.Any(d =>
+                d.IsActive &&
+                d.StartDate <= now &&
+                d.EndDate >= now));
+        }
+    }
+
+    if (genre.HasValue)
+        query = query.Where(b => b.Genre == genre.Value);
+
+    // Get all books with their current data
+    var books = await query.ToListAsync();
+
+    // Calculate effective prices for all books
+    var effectivePrices = new Dictionary<int, (decimal? purchase, decimal? borrow)>();
+    foreach (var book in books)
+    {
+        var activeDiscount = book.Discounts
+            .FirstOrDefault(d => d.IsActive && d.StartDate <= now && d.EndDate >= now);
+
+        var discountMultiplier = activeDiscount != null ? (1 - activeDiscount.DiscountAmount / 100m) : 1m;
+
+        effectivePrices[book.Id] = (
+            purchase: book.PurchasePrice.HasValue ? book.PurchasePrice * discountMultiplier : null,
+            borrow: book.BorrowPrice.HasValue ? book.BorrowPrice * discountMultiplier : null
+        );
+    }
+
+    // Apply sorting based on effective prices
+    if (!string.IsNullOrEmpty(sortBy))
+    {
+        books = sortBy.ToLower() switch
+        {
+            "purchaseprice" => ascending
+                ? books.OrderBy(b => effectivePrices[b.Id].purchase).ToList()
+                : books.OrderByDescending(b => effectivePrices[b.Id].purchase).ToList(),
+            "borrowprice" => ascending
+                ? books.OrderBy(b => effectivePrices[b.Id].borrow).ToList()
+                : books.OrderByDescending(b => effectivePrices[b.Id].borrow).ToList(),
+            "rating" => books, // Rating sorting is handled separately
+            _ => books
+        };
+    }
+
+    // Handle rating sorting if needed
+    if (sortBy == "rating")
+    {
+        var bookRatings = await _context.Books
+            .Select(b => new
+            {
+                b.Id,
+                AvgRating = _context.Ratings
+                    .Where(r => r.BookId == b.Id)
+                    .Average(r => (double?)r.Value) ?? 0.0
+            })
+            .ToListAsync();
+
+        var sortedBookIds = ascending
+            ? bookRatings.OrderBy(br => br.AvgRating).Select(br => br.Id).ToList()
+            : bookRatings.OrderByDescending(br => br.AvgRating).Select(br => br.Id).ToList();
+
+        books = books.OrderBy(b => sortedBookIds.IndexOf(b.Id)).ToList();
+    }
+
+    return books;
+}
 
 
 
