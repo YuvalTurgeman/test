@@ -53,9 +53,9 @@
                                         }
                                         <button type="button"
                                                 class="btn btn-outline-primary"
-                                                onclick="downloadBook(@book.Id, '@book.Book.Title', '@book.Book.Formats')"
-                                                title="Read book">
-                                            <i class="bi bi-book-half"></i> Read
+                                                onclick="simulateDownload(@book.Id, '@book.Book.Title')"
+                                                title="Download book">
+                                            <i class="bi bi-download"></i> Download
                                         </button>
                                         <button type="button"
                                                 class="btn btn-outline-warning"
@@ -103,10 +103,10 @@
                                             </div>
                                             <div class="d-flex gap-2">
                                                 <button type="button"
-                                                        class="btn btn-outline-primary btn-sm"
-                                                        onclick="downloadBook(@book.Id, '@book.Book.Title', '@book.Book.Formats')"
-                                                        title="Read book">
-                                                    <i class="bi bi-book-half"></i>
+                                                        class="btn btn-outline-primary"
+                                                        onclick="simulateDownload(@book.Id, '@book.Book.Title')"
+                                                        title="Download book">
+                                                    <i class="bi bi-download"></i>
                                                 </button>
                                                 <button type="button"
                                                         class="btn btn-outline-warning btn-sm"
@@ -126,7 +126,14 @@
                                             Purchased: @book.PurchaseDate.ToString("MMM dd, yyyy")
                                         </div>
                                         <div class="small text-muted mt-1">
-                                            Available formats: @book.Book.Formats
+                                            @{
+                                                var formatNames = new List<string>();
+                                                if (book.Book.AvailableFormats.HasFlag(test.Enums.BookFormat.EPUB)) formatNames.Add("EPUB");
+                                                if (book.Book.AvailableFormats.HasFlag(test.Enums.BookFormat.F2B)) formatNames.Add("F2B");
+                                                if (book.Book.AvailableFormats.HasFlag(test.Enums.BookFormat.MOBI)) formatNames.Add("MOBI");
+                                                if (book.Book.AvailableFormats.HasFlag(test.Enums.BookFormat.PDF)) formatNames.Add("PDF");
+                                            }
+                                            Available formats: @(string.Join(", ", formatNames))
                                         </div>
                                     </div>
                                 </div>
@@ -295,56 +302,44 @@
             deleteModal.show();
         }
 
-        function downloadBook(id, title, formats) {
-            console.log('Download book:', id, title, formats);
-            document.getElementById('downloadBookTitle').textContent = title;
+        function simulateDownload(bookId, title) {
+            // Prevent default event handling
+            event.preventDefault();
 
-            const formatButtons = document.getElementById('formatButtons');
-            formatButtons.innerHTML = '';
-
-            if (!formats) {
-                formatButtons.innerHTML = '<p class="text-danger">No formats available</p>';
-                return;
-            }
-
-            formats.split(',').forEach(format => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'btn btn-primary me-2 mb-2';
-                format = format.trim().toLowerCase();
-
-                let icon = 'file-text';
-                if (format === 'pdf') icon = 'file-pdf';
-                if (format === 'epub') icon = 'file-earmark-text';
-
-                btn.innerHTML = `
-                    <i class="bi bi-${icon} me-2"></i>
-                    Read as ${format.toUpperCase()}
-                `;
-
-                btn.addEventListener('click', function() {
-                    simulateReading(this, title, format);
-                });
-
-                formatButtons.appendChild(btn);
-            });
-
-            downloadFormatModal.show();
-        }
-
-        function simulateReading(button, title, format) {
+            // Find the button that was clicked
+            const button = event.currentTarget;
             const originalContent = button.innerHTML;
-            button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Opening...';
+
+            // Show loading state with a download icon
+            button.innerHTML = `
+        <span class="spinner-border spinner-border-sm me-2"></span>
+        <i class="bi bi-download me-1"></i>
+        Downloading...
+    `;
             button.disabled = true;
 
-            setTimeout(() => {
-                downloadFormatModal.hide();
-                showAlert('success', `Opening ${title} in ${format.toUpperCase()} format...`);
-                button.innerHTML = originalContent;
-                button.disabled = false;
-            }, 1500);
-        }
+            // Show an alert that file is being downloaded
+            showAlert('info', `
+        <i class="bi bi-download me-2"></i>
+        Downloading "${title}" to your computer...
+    `);
 
+            // Simulate download delay
+            setTimeout(() => {
+                // Restore button state
+                button.innerHTML = `
+            <i class="bi bi-download"></i> Download
+        `;
+                button.disabled = false;
+
+                // Show success message
+                showAlert('success', `
+            <i class="bi bi-check-circle me-2"></i>
+            "${title}" has been downloaded successfully!
+        `);
+            }, 2000); // 2 second simulation
+        }
+        
         function showRatingModal(bookId, bookTitle) {
             document.getElementById('bookIdForRating').value = bookId;
             document.getElementById('bookTitleForRating').textContent = bookTitle;
@@ -359,7 +354,8 @@
             try {
                 const response = await fetch(`/Books/Rate/${formData.get('bookId')}`, {
                     method: 'POST',
-                    body: formData,headers: {
+                    body: formData,
+                    headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 });

@@ -1,6 +1,7 @@
 @model ShoppingCartModel
 @{
     ViewData["Title"] = "Shopping Cart";
+    var borrowCount = Model.CartItems.Count(x => x.IsBorrow);
 }
 
 <div class="container">
@@ -14,6 +15,14 @@
     }
     else
     {
+        @if (borrowCount > 3)
+        {
+            <div class="alert alert-warning" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                You can only borrow up to 3 different books at a time. Please remove some borrowed books to proceed with checkout.
+            </div>
+        }
+
         <form asp-action="UpdateCart" method="post">
             @Html.AntiForgeryToken()
             <table class="table">
@@ -51,7 +60,7 @@
                                         onclick="updateQuantity(this, -1)">-</button>
                                 <input type="number" name="updates[@item.Id].Quantity" value="@item.Quantity"
                                        class="form-control text-center"
-                                       min="1" max="@(item.IsBorrow ? 3 : 10)" />
+                                       min="1" max="@(item.IsBorrow ? 1 : 10)" />
                                 <button type="button" class="btn btn-outline-secondary btn-sm"
                                         onclick="updateQuantity(this, 1)">+</button>
                             </div>
@@ -80,7 +89,12 @@
                     <div class="card-body">
                         <h5 class="card-title">Cart Summary:</h5>
                         <p>Books to Purchase: @Model.CartItems.Where(i => !i.IsBorrow).Sum(i => i.Quantity)</p>
-                        <p>Books to Borrow: @Model.CartItems.Where(i => i.IsBorrow).Sum(i => i.Quantity)</p>
+                        <p>Books to Borrow: @borrowCount
+                            @if (borrowCount > 0)
+                            {
+                                <small class="text-muted">(Maximum: 3 different books)</small>
+                            }
+                        </p>
                     </div>
                 </div>
             </div>

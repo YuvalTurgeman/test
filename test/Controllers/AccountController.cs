@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -88,71 +89,85 @@ namespace test.Controllers
         }
         
         //POST: Account/Register
-        [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Register(User user, string confirmPassword)
-    {
-        try
+            [HttpPost]
+        [ValidateAntiForgeryToken] 
+            public async Task<IActionResult> Register(User user, string confirmPassword)
         {
-            
-            if (string.IsNullOrWhiteSpace(user.Username))
+            try
             {
-                ViewData["ErrorMessage"] = "Username is required.";
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage);
+                    ViewData["ErrorMessage"] = string.Join(" ", errors);
+                    return View(user);
+                }
+
+                if (string.IsNullOrWhiteSpace(user.Username))
+                {
+                    ViewData["ErrorMessage"] = "Username is required.";
+                    return View(user);
+                }
+
+                // Password validation
+                var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
+                if (!passwordRegex.IsMatch(user.Password))
+                {
+                    ViewData["ErrorMessage"] = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+                    return View(user);
+                }
+
+                if (user.Password != confirmPassword)
+                {
+                    ViewData["ErrorMessage"] = "Passwords do not match.";
+                    return View(user);
+                }
+
+                var isEmailUnique = await _userDAL.IsEmailUniqueAsync(user.Email);
+                if (!isEmailUnique)
+                {
+                    ViewData["ErrorMessage"] = "This email is already registered.";
+                    return View(user);
+                }
+
+                // Hash password and set default permission
+                user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+                user.Permission = test.Enums.UserPermission.Customer;
+                
+                var createdUser = await _userDAL.CreateUserAsync(user);
+
+                // Create claims and sign in
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, createdUser.Id.ToString()),
+                    new Claim(ClaimTypes.Name, createdUser.Username),
+                    new Claim(ClaimTypes.Email, createdUser.Email),
+                    new Claim(ClaimTypes.Role, createdUser.Permission.ToString())
+                };
+
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var authProperties = new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
+                };
+
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity),
+                    authProperties);
+
+                HttpContext.Session.SetInt32("UserId", createdUser.Id);
+                
+                return RedirectToAction("Login", "Account");
+            }
+            catch (Exception ex)
+            {
+                ViewData["ErrorMessage"] = "An error occurred during registration. Please try again.";
                 return View(user);
             }
-            
-
-            if (user.Password != confirmPassword)
-            {
-                ViewData["ErrorMessage"] = "Passwords do not match.";
-                return View(user);
-            }
-
-            var isEmailUnique = await _userDAL.IsEmailUniqueAsync(user.Email);
-
-            if (!isEmailUnique)
-            {
-                ViewData["ErrorMessage"] = "This email is already registered.";
-                return View(user);
-            }
-
-            // Hash password and set default permission
-            user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
-            user.Permission = Enums.UserPermission.Customer;
-            
-            var createdUser = await _userDAL.CreateUserAsync(user);
-
-            // Create claims and sign in
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, createdUser.Id.ToString()),
-                new Claim(ClaimTypes.Name, createdUser.Username),
-                new Claim(ClaimTypes.Email, createdUser.Email),
-                new Claim(ClaimTypes.Role, createdUser.Permission.ToString())
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
-            };
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties);
-
-            HttpContext.Session.SetInt32("UserId", createdUser.Id);
-            
-            return RedirectToAction("Login", "Account");
         }
-        catch (Exception ex)
-        {
-            ViewData["ErrorMessage"] = "An error occurred during registration. Please try again.";
-            return View(user);
-        }
-    }
 
         // GET: Account/ShowUser
         public async Task<IActionResult> ShowUser(int? id)

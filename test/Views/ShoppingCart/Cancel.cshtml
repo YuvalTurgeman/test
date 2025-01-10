@@ -1,12 +1,66 @@
 @{
-ViewBag.Title = "Payment Canceled";
+    ViewBag.Title = "Payment Canceled";
 }
 
-<div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; text-align: center;">
-    <h1>@ViewBag.Message</h1>
-    <p>It seems your payment was canceled. If this was a mistake, you can retry your payment from the cart.</p>
+<!-- Include Bootstrap CSS and Icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-    <div style="margin-top: 20px;">
-        <a href="@Url.Action("UserHomePage", "Books")" class="btn btn-primary">Back to Home</a>
+<style>
+    .cancel-page {
+        background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+        min-height: 100vh;
+    }
+    .cancel-icon {
+        font-size: 4rem;
+        color: #dc3545;
+    }
+    .info-box {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+        border-radius: 8px;
+    }
+    .btn-outline-danger {
+        border-width: 2px;
+    }
+</style>
+
+<div class="cancel-page d-flex align-items-center justify-content-center py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6">
+                <div class="bg-white shadow-lg rounded-4 p-5 text-center">
+                    <!-- Cancel Icon -->
+                    <div class="mb-4">
+                        <i class="fas fa-times-circle cancel-icon"></i>
+                    </div>
+
+                    <!-- Cancel Message -->
+                    <h1 class="display-6 fw-bold mb-3">Payment Canceled</h1>
+
+                    <!-- Info Box -->
+                    <div class="info-box p-3 mb-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Your payment was not processed
+                    </div>
+
+                    <!-- Message -->
+                    <p class="text-muted mb-4">
+                        It seems your payment was canceled. If this was a mistake, you can retry your payment from the cart.
+                    </p>
+
+                    <!-- Buttons -->
+                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                        <a href="@Url.Action("UserHomePage", "Books")" class="btn btn-primary btn-lg px-5 rounded-pill">
+                            Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>

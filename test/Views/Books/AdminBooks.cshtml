@@ -198,7 +198,16 @@
                        <td>@(book.BorrowPrice?.ToString("C") ?? "N/A")</td>
                        <td>@(book.YearPublished ?? 0)</td>
                        <td>@(book.AgeLimit ?? "N/A")</td>
-                       <td>@(book.Formats ?? "N/A")</td>
+                       <td>
+                           @{
+                               var formatNames = new List<string>();
+                               if (book.AvailableFormats.HasFlag(test.Enums.BookFormat.EPUB)) formatNames.Add("EPUB");
+                               if (book.AvailableFormats.HasFlag(test.Enums.BookFormat.F2B)) formatNames.Add("F2B");
+                               if (book.AvailableFormats.HasFlag(test.Enums.BookFormat.MOBI)) formatNames.Add("MOBI");
+                               if (book.AvailableFormats.HasFlag(test.Enums.BookFormat.PDF)) formatNames.Add("PDF");
+                           }
+                           @(formatNames.Any() ? string.Join(", ", formatNames) : "N/A")
+                       </td>
                        <td>
                            <span class="badge @(book.IsBuyOnly ? "bg-success" : "bg-secondary")">
                                @(book.IsBuyOnly ? "Yes" : "No")
