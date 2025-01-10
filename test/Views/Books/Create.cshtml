@@ -60,20 +60,69 @@
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="Formats" class="form-label">Formats</label>
-                            <input asp-for="Formats" class="form-control" />
-                            <span asp-validation-for="Formats" class="text-danger"></span>
-                        </div>
-
-                        <div class="mb-3 form-check">
-                            <input asp-for="IsBuyOnly" type="checkbox" class="form-check-input" />
-                            <label asp-for="IsBuyOnly" class="form-check-label">Is Buy Only</label>
+                            <label class="form-label">Available Formats</label>
+                            <div class="row">
+                                <div class="col">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="AvailableFormats"
+                                               value="@test.Enums.BookFormat.EPUB"
+                                               id="formatEPUB"
+                                               @(Model?.HasFormat(test.Enums.BookFormat.EPUB) ?? false ? "checked" : "") />
+                                        <label class="form-check-label" for="formatEPUB">
+                                            EPUB
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="AvailableFormats"
+                                               value="@test.Enums.BookFormat.F2B"
+                                               id="formatF2B"
+                                               @(Model?.HasFormat(test.Enums.BookFormat.F2B) ?? false ? "checked" : "") />
+                                        <label class="form-check-label" for="formatF2B">
+                                            F2B
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="AvailableFormats"
+                                               value="@test.Enums.BookFormat.MOBI"
+                                               id="formatMOBI"
+                                               @(Model?.HasFormat(test.Enums.BookFormat.MOBI) ?? false ? "checked" : "") />
+                                        <label class="form-check-label" for="formatMOBI">
+                                            MOBI
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="AvailableFormats"
+                                               value="@test.Enums.BookFormat.PDF"
+                                               id="formatPDF"
+                                               @(Model?.HasFormat(test.Enums.BookFormat.PDF) ?? false ? "checked" : "") />
+                                        <label class="form-check-label" for="formatPDF">
+                                            PDF
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <span asp-validation-for="AvailableFormats" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
                             <label asp-for="CoverImage" class="form-label">Cover Image URL</label>
                             <input asp-for="CoverImage" class="form-control" />
                             <span asp-validation-for="CoverImage" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input asp-for="IsBuyOnly" type="checkbox" class="form-check-input" />
+                            <label asp-for="IsBuyOnly" class="form-check-label">Is Buy Only</label>
                         </div>
 
                         <div class="d-grid gap-2">

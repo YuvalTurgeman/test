@@ -6,7 +6,6 @@ using test.ViewModels;
 using System.Security.Claims;
 using test.Services;
 
-
 namespace test.Controllers
 {
     [Authorize]
@@ -54,6 +53,20 @@ namespace test.Controllers
                     return RedirectToAction("UserHomePage", "Books");
                 }
 
+                // Check if user already has this book borrowed
+                if (await _borrowDAL.HasUserBorrowedBookAsync(userId, id))
+                {
+                    TempData["Error"] = "You already have this book borrowed.";
+                    return RedirectToAction("MyBorrows");
+                }
+
+                // Check if user has reached borrow limit
+                if (await _borrowDAL.HasReachedBorrowLimitAsync(userId))
+                {
+                    TempData["Error"] = "You can only borrow up to 3 different books at a time.";
+                    return RedirectToAction("MyBorrows");
+                }
+
                 var availableCopies = await _bookDAL.GetAvailableCopiesAsync(id);
 
                 if (availableCopies > 0)
@@ -80,7 +93,7 @@ namespace test.Controllers
                         FinalPrice = book.BorrowPrice
                     };
 
-                    // Add item to cart using the proper method
+                    // Add item to cart
                     await _shoppingCartDAL.AddItemToCartAsync(cartItem);
 
                     TempData["Success"] = "Book added to cart for borrowing!";
@@ -112,24 +125,18 @@ namespace test.Controllers
                 return RedirectToAction("UserHomePage", "Books");
             }
 
-            // Get book details
             var book = await _bookDAL.GetBookByIdAsync(bookId.Value);
             if (book == null)
             {
                 return RedirectToAction("UserHomePage", "Books");
             }
 
-            // Get waiting list count
             var waitingList = await _waitingListDAL.GetBookWaitingListAsync(bookId.Value);
             var peopleInQueue = waitingList.Count;
-
-            // Get current user's potential position
             var position = peopleInQueue + 1;
 
-            // Get estimated availability date based on current active borrows
             var estimatedDate = await _waitingListDAL.GetEstimatedAvailabilityAsync(bookId.Value, position);
 
-            // Calculate estimated wait days
             int estimatedWaitDays;
             if (estimatedDate.HasValue)
             {
@@ -137,7 +144,6 @@ namespace test.Controllers
             }
             else
             {
-                // If no active borrows, estimate based on average borrow duration (30 days) and position in queue
                 estimatedWaitDays = (int)Math.Ceiling((double)position / book.TotalCopies * 30);
             }
 
@@ -146,7 +152,7 @@ namespace test.Controllers
                 BookId = bookId.Value,
                 BookTitle = bookTitle,
                 PeopleInQueue = peopleInQueue,
-                EstimatedWaitDays = Math.Max(estimatedWaitDays, 1), // Ensure minimum 1 day
+                EstimatedWaitDays = Math.Max(estimatedWaitDays, 1),
                 TotalCopies = book.TotalCopies,
                 EstimatedAvailabilityDate = estimatedDate
             };
@@ -163,6 +169,13 @@ namespace test.Controllers
             {
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
+                // Check if user already has this book borrowed
+                if (await _borrowDAL.HasUserBorrowedBookAsync(userId, bookId))
+                {
+                    TempData["Error"] = "You already have this book borrowed.";
+                    return RedirectToAction("MyBorrows");
+                }
+
                 if (await _waitingListDAL.IsUserInWaitingListAsync(userId, bookId))
                 {
                     TempData["Error"] = "You are already in the waiting list for this book.";
@@ -173,142 +186,112 @@ namespace test.Controllers
                     TempData["Success"] = "You have been added to the waiting list!";
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"Error in JoinWaitingList: {ex.Message}");
                 TempData["Error"] = "Failed to join waiting list.";
             }
 
             return RedirectToAction("UserHomePage", "Books");
         }
-        
+
         [Authorize(Roles = "Customer")]
         public async Task<IActionResult> MyBorrows()
         {
             try
             {
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-        
-                // Get user purchases - ensure we're getting all non-hidden purchases
+
                 var userPurchases = await _purchaseDAL.GetUserPurchasesAsync(userId);
                 var activePurchases = userPurchases.Where(p => !p.IsHidden).ToList();
-        
-                // Get borrows
+
                 var borrows = await _borrowDAL.GetUserBorrowsAsync(userId);
                 var activeBorrows = borrows.Where(b => !b.IsReturned && b.EndDate > DateTime.UtcNow);
 
-                ViewBag.PurchasedBooks = activePurchases; // Make sure we're passing all purchases
+                ViewBag.PurchasedBooks = activePurchases;
                 ViewBag.BorrowedBooks = activeBorrows;
 
                 return View();
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Error in MyBorrows: {ex.Message}");
                 TempData["Error"] = "Failed to load library.";
                 return RedirectToAction("Index", "Home");
             }
         }
-        
-        [HttpPost]
 
-
-    [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Customer")]
-    public async Task<IActionResult> ReturnBook(int id)
-    {
-        try
-        {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-            var borrow = await _borrowDAL.GetBorrowByIdAsync(id);
-
-            if (borrow == null || borrow.UserId != userId)
-            {
-                TempData["Error"] = "Invalid book return request.";
-                return RedirectToAction(nameof(MyBorrows));
-            }
-
-            // Process the return
-            await _borrowDAL.ReturnBookAsync(id);
-
-            // Update available copies
-            await _bookDAL.UpdateAvailableCopiesAsync(borrow.BookId);
-
-            // Get top 3 people in waiting list
-            var topThreeInLine = await _waitingListDAL.GetTopWaitingListPositionsAsync(borrow.BookId, 3);
-            
-            if (topThreeInLine.Any())
-            {
-                foreach (var waitingUser in topThreeInLine)
-                {
-                    try
-                    {
-                        var emailBody = $@"
-                            <h2>Good News!</h2>
-                            <p>The book '{borrow.Book.Title}' is now available for borrowing.</p>
-                            <p>You are position {waitingUser.Position} in line.</p>
-                            <p>Please log in to your account to borrow the book. The first person to borrow the book will get it.</p>
-                            <p>If you don't borrow the book soon, it may be borrowed by another user in the waiting list.</p>";
-
-                        await _emailService.SendEmailAsync(
-                            waitingUser.User.Email,
-                            "Book Available for Borrowing",
-                            emailBody
-                        );
-
-                        // Mark as notified
-                        waitingUser.IsNotified = true;
-                        await _waitingListDAL.UpdateWaitingListItemAsync(waitingUser);
-                    }
-                    catch (Exception emailEx)
-                    {
-                        // Log the email error but continue processing
-                        Console.WriteLine($"Error sending notification email to user {waitingUser.UserId}: {emailEx.Message}");
-                    }
-                }
-                TempData["Success"] = "Book returned successfully and waiting list users notified.";
-            }
-            else
-            {
-                TempData["Success"] = "Book returned successfully.";
-            }
-
-            return RedirectToAction(nameof(MyBorrows));
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error returning book: {ex.Message}");
-            TempData["Error"] = "An error occurred while returning the book.";
-            return RedirectToAction(nameof(MyBorrows));
-        }
-    }
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> HidePurchasedBook(int id)
+        [Authorize(Roles = "Customer")]
+        public async Task<IActionResult> ReturnBook(int id)
         {
             try
             {
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var purchase = await _purchaseDAL.GetPurchaseByIdAsync(id);
+                var borrow = await _borrowDAL.GetBorrowByIdAsync(id);
 
-                if (purchase == null || purchase.UserId != userId)
+                if (borrow == null || borrow.UserId != userId)
                 {
-                    TempData["Error"] = "Invalid request.";
+                    TempData["Error"] = "Invalid book return request.";
                     return RedirectToAction(nameof(MyBorrows));
                 }
 
-                purchase.IsHidden = true;
-                await _purchaseDAL.UpdatePurchaseAsync(purchase);
+                // Process the return
+                await _borrowDAL.ReturnBookAsync(id);
 
-                TempData["Success"] = "Book removed from your library.";
+                // Update available copies
+                await _bookDAL.UpdateAvailableCopiesAsync(borrow.BookId);
+
+                // Get top 3 people in waiting list
+                var topThreeInLine = await _waitingListDAL.GetTopWaitingListPositionsAsync(borrow.BookId, 3);
+                
+                if (topThreeInLine.Any())
+                {
+                    foreach (var waitingUser in topThreeInLine)
+                    {
+                        try
+                        {
+                            var emailBody = $@"
+                                <h2>Good News!</h2>
+                                <p>The book '{borrow.Book.Title}' is now available for borrowing.</p>
+                                <p>You are position {waitingUser.Position} in line.</p>
+                                <p>Please log in to your account to borrow the book.</p>
+                                <p>Note: The first person to borrow the book will get it, so act quickly!</p>";
+
+                            await _emailService.SendEmailAsync(
+                                waitingUser.User.Email,
+                                "Book Available for Borrowing",
+                                emailBody
+                            );
+
+                            waitingUser.IsNotified = true;
+                            await _waitingListDAL.UpdateWaitingListItemAsync(waitingUser);
+                        }
+                        catch (Exception emailEx)
+                        {
+                            Console.WriteLine($"Error sending notification email to user {waitingUser.UserId}: {emailEx.Message}");
+                        }
+                    }
+                    TempData["Success"] = "Book returned successfully and waiting list users notified.";
+                }
+                else
+                {
+                    TempData["Success"] = "Book returned successfully.";
+                }
+
                 return RedirectToAction(nameof(MyBorrows));
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Failed to remove book from library.";
+                Console.WriteLine($"Error returning book: {ex.Message}");
+                TempData["Error"] = "An error occurred while returning the book.";
                 return RedirectToAction(nameof(MyBorrows));
             }
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Customer")]
         public async Task<IActionResult> DeletePurchasedBook(int id)
         {
             try
@@ -318,21 +301,23 @@ namespace test.Controllers
 
                 if (purchase == null || purchase.UserId != userId)
                 {
-                    TempData["Error"] = "Invalid request.";
+                    TempData["Error"] = "Invalid book deletion request.";
                     return RedirectToAction(nameof(MyBorrows));
                 }
 
-                await _purchaseDAL.DeletePurchaseAsync(id);
+                // Soft delete by setting IsHidden to true
+                purchase.IsHidden = true;
+                await _purchaseDAL.UpdatePurchaseAsync(purchase);
 
-                TempData["Success"] = "Book has been permanently deleted from your library.";
+                TempData["Success"] = "Book successfully removed from your library.";
                 return RedirectToAction(nameof(MyBorrows));
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Failed to delete book from library.";
+                Console.WriteLine($"Error deleting purchased book: {ex.Message}");
+                TempData["Error"] = "An error occurred while deleting the book.";
                 return RedirectToAction(nameof(MyBorrows));
             }
         }
-        
     }
 }

@@ -16,12 +16,24 @@ namespace test.Data
         {
             try
             {
-                // Validate borrow limit
-                var activeUserBorrows = await _context.Borrows
-                    .CountAsync(b => b.UserId == borrow.UserId && !b.IsReturned);
+                // Check if user already has this book borrowed
+                var existingBorrow = await _context.Borrows
+                    .AnyAsync(b => b.UserId == borrow.UserId && 
+                                 b.BookId == borrow.BookId && 
+                                 !b.IsReturned);
 
-                if (activeUserBorrows >= 3)
-                    throw new InvalidOperationException("User has reached maximum borrow limit");
+                if (existingBorrow)
+                    throw new InvalidOperationException("User already has this book borrowed");
+
+                // Check total number of different books borrowed
+                var distinctBorrowedBooks = await _context.Borrows
+                    .Where(b => b.UserId == borrow.UserId && !b.IsReturned)
+                    .Select(b => b.BookId)
+                    .Distinct()
+                    .CountAsync();
+
+                if (distinctBorrowedBooks >= 3)
+                    throw new InvalidOperationException("User has reached maximum borrow limit of 3 different books");
 
                 // Validate book availability
                 var activeBookBorrows = await _context.Borrows
@@ -30,6 +42,11 @@ namespace test.Data
                 var book = await _context.Books.FindAsync(borrow.BookId);
                 if (book == null || activeBookBorrows >= book.TotalCopies)
                     throw new InvalidOperationException("Book is not available for borrowing");
+
+                // Set borrow period to 30 days
+                borrow.StartDate = DateTime.UtcNow;
+                borrow.EndDate = borrow.StartDate.AddDays(30);
+                borrow.IsReturned = false;
 
                 await _context.Borrows.AddAsync(borrow);
                 await _context.SaveChangesAsync();
@@ -98,8 +115,8 @@ namespace test.Data
                 return await _context.Borrows
                     .Include(b => b.Book)
                     .Where(b => b.UserId == userId && 
-                              !b.IsReturned && 
-                              b.EndDate > DateTime.UtcNow)
+                               !b.IsReturned && 
+                               b.EndDate > DateTime.UtcNow)
                     .ToListAsync();
             }
             catch (Exception ex)
@@ -213,7 +230,7 @@ namespace test.Data
             }
         }
 
-        public async Task<bool> HasActiveBookBorrowAsync(int userId, int bookId)
+        public async Task<bool> HasUserBorrowedBookAsync(int userId, int bookId)
         {
             try
             {
@@ -224,7 +241,7 @@ namespace test.Data
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in HasActiveBookBorrowAsync: {ex.Message}");
+                Console.WriteLine($"Error in HasUserBorrowedBookAsync: {ex.Message}");
                 throw;
             }
         }
@@ -247,13 +264,57 @@ namespace test.Data
         {
             try
             {
-                var activeCount = await _context.Borrows
-                    .CountAsync(b => b.UserId == userId && !b.IsReturned);
-                return activeCount >= 3;
+                var distinctBorrowedBooks = await _context.Borrows
+                    .Where(b => b.UserId == userId && !b.IsReturned)
+                    .Select(b => b.BookId)
+                    .Distinct()
+                    .CountAsync();
+                
+                return distinctBorrowedBooks >= 3;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error in HasReachedBorrowLimitAsync: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<int> GetDistinctBorrowedBooksCountAsync(int userId)
+        {
+            try
+            {
+                return await _context.Borrows
+                    .Where(b => b.UserId == userId && !b.IsReturned)
+                    .Select(b => b.BookId)
+                    .Distinct()
+                    .CountAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetDistinctBorrowedBooksCountAsync: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task RemoveExpiredBorrowsAsync()
+        {
+            try
+            {
+                var expiredBorrows = await _context.Borrows
+                    .Where(b => !b.IsReturned && b.EndDate < DateTime.UtcNow)
+                    .ToListAsync();
+
+                foreach (var borrow in expiredBorrows)
+                {
+                    borrow.IsReturned = true;
+                    borrow.ReturnedDate = DateTime.UtcNow;
+                }
+
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in RemoveExpiredBorrowsAsync: {ex.Message}");
                 throw;
             }
         }

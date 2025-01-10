@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -88,18 +89,34 @@ namespace test.Controllers
         }
 
         //POST: Account/Register
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(User user, string confirmPassword)
+            [HttpPost]
+        [ValidateAntiForgeryToken] 
+            public async Task<IActionResult> Register(User user, string confirmPassword)
         {
             try
             {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage);
+                    ViewData["ErrorMessage"] = string.Join(" ", errors);
+                    return View(user);
+                }
+
                 if (string.IsNullOrWhiteSpace(user.Username))
                 {
                     ViewData["ErrorMessage"] = "Username is required.";
                     return View(user);
                 }
 
+                // Password validation
+                var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
+                if (!passwordRegex.IsMatch(user.Password))
+                {
+                    ViewData["ErrorMessage"] = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+                    return View(user);
+                }
 
                 if (user.Password != confirmPassword)
                 {
@@ -108,7 +125,6 @@ namespace test.Controllers
                 }
 
                 var isEmailUnique = await _userDAL.IsEmailUniqueAsync(user.Email);
-
                 if (!isEmailUnique)
                 {
                     ViewData["ErrorMessage"] = "This email is already registered.";
@@ -117,9 +133,11 @@ namespace test.Controllers
 
                 // Hash password and set default permission
                 user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
-                user.Permission = Enums.UserPermission.Customer;
 
+                user.Permission = test.Enums.UserPermission.Customer;
+                
                 var createdUser = await _userDAL.CreateUserAsync(user);
+
 
                 // Create claims and sign in
                 var claims = new List<Claim>

@@ -2,12 +2,66 @@
     ViewBag.Title = "Payment Successful";
 }
 
-<div class="d-flex justify-content-center align-items-center vh-100 text-center">
-    <div>
-        <h1>@ViewBag.Message</h1>
-        <p>Thank you for your purchase! You can continue shopping or check your order details in your account.</p>
-        <div style="margin-top: 20px;">
-            <a href="@Url.Action("UserHomePage", "Books")" class="btn btn-primary">Back to Home</a>
+<!-- Include Bootstrap CSS and Icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    .success-page {
+        background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
+        min-height: 100vh;
+    }
+    .success-icon {
+        font-size: 4rem;
+        color: #28a745;
+    }
+    .action-card {
+        transition: transform 0.2s;
+    }
+    .action-card:hover {
+        transform: translateY(-5px);
+    }
+    .confirmation-box {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+        border-radius: 8px;
+    }
+</style>
+
+<div class="success-page d-flex align-items-center justify-content-center py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6">
+                <div class="bg-white shadow-lg rounded-4 p-5 text-center">
+                    <!-- Success Icon -->
+                    <div class="mb-4">
+                        <i class="fas fa-check-circle success-icon"></i>
+                    </div>
+
+                    <!-- Success Message -->
+                    <h1 class="display-6 fw-bold mb-3">Payment Successful!</h1>
+
+                    <!-- Confirmation Box -->
+                    <div class="confirmation-box p-3 mb-4">
+                        <i class="fas fa-envelope me-2"></i>
+                        A confirmation email has been sent to your inbox
+                    </div>
+
+                    <!-- Thank You Message -->
+                    <p class="text-muted mb-4">
+                        Thank you for your purchase! Your transaction has been completed successfully.
+                    </p>
+
+                    <!-- Back to Home Button -->
+                    <a href="@Url.Action("UserHomePage", "Books")" class="btn btn-primary btn-lg px-5 rounded-pill">
+                        Back to Home
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>

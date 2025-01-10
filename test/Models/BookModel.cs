@@ -49,8 +49,8 @@ namespace test.Models
 
         public bool IsBuyOnly { get; set; }
 
-        [MaxLength(100)]
-        public string Formats { get; set; }
+        // Replace string Formats with BookFormat enum
+        public BookFormat AvailableFormats { get; set; }
 
         [Required]
         public int TotalCopies { get; set; } = 3;
@@ -62,5 +62,23 @@ namespace test.Models
         public virtual ICollection<BorrowModel> Borrows { get; set; }
         public virtual ICollection<DiscountModel> Discounts { get; set; }
         public virtual ICollection<WaitingListModel> WaitingList { get; set; }
+
+        // Helper method to check if a specific format is available
+        public bool HasFormat(BookFormat format)
+        {
+            return AvailableFormats.HasFlag(format);
+        }
+
+        // Helper method to add a format
+        public void AddFormat(BookFormat format)
+        {
+            AvailableFormats |= format;
+        }
+
+        // Helper method to remove a format
+        public void RemoveFormat(BookFormat format)
+        {
+            AvailableFormats &= ~format;
+        }
     }
 }

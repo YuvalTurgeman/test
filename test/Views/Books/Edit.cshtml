@@ -1,54 +1,136 @@
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @model test.Models.BookModel
 
-<h2>Edit Book</h2>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Edit Book</h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
 
-<form asp-action="Edit" asp-route-id="@Model.Id" method="post">
-    @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="Id" />
-    <div class="form-group">
-        <label asp-for="Title"></label>
-        <input asp-for="Title" class="form-control" />
+                        <div class="mb-3">
+                            <label asp-for="Title" class="form-label">Title</label>
+                            <input asp-for="Title" class="form-control" required />
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="CoverImage" class="form-label">Cover Image URL</label>
+                            <input asp-for="CoverImage" class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Genre" class="form-label">Genre</label>
+                            <select asp-for="Genre" class="form-control" asp-items="Html.GetEnumSelectList<test.Enums.Genre>()"></select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Author" class="form-label">Author</label>
+                            <input asp-for="Author" class="form-control" required />
+                            <span asp-validation-for="Author" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Publisher" class="form-label">Publisher</label>
+                            <input asp-for="Publisher" class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="PurchasePrice" class="form-label">Purchase Price</label>
+                            <input asp-for="PurchasePrice" type="number" step="0.01" class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="BorrowPrice" class="form-label">Borrow Price</label>
+                            <input asp-for="BorrowPrice" type="number" step="0.01" class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="YearPublished" class="form-label">Year Published</label>
+                            <input asp-for="YearPublished" type="number" class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="AgeLimit" class="form-label">Age Limit</label>
+                            <input asp-for="AgeLimit" class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Available Formats</label>
+                            <div class="row">
+                                <div class="col">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="AvailableFormats"
+                                               value="@test.Enums.BookFormat.EPUB"
+                                               id="formatEPUB"
+                                               asp-is-checked="@Model.HasFormat(test.Enums.BookFormat.EPUB)" />
+                                        <label class="form-check-label" for="formatEPUB">
+                                            EPUB
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="AvailableFormats"
+                                               value="@test.Enums.BookFormat.F2B"
+                                               id="formatF2B"
+                                               asp-is-checked="@Model.HasFormat(test.Enums.BookFormat.F2B)" />
+                                        <label class="form-check-label" for="formatF2B">
+                                            F2B
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="AvailableFormats"
+                                               value="@test.Enums.BookFormat.MOBI"
+                                               id="formatMOBI"
+                                               asp-is-checked="@Model.HasFormat(test.Enums.BookFormat.MOBI)" />
+                                        <label class="form-check-label" for="formatMOBI">
+                                            MOBI
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="AvailableFormats"
+                                               value="@test.Enums.BookFormat.PDF"
+                                               id="formatPDF"
+                                               asp-is-checked="@Model.HasFormat(test.Enums.BookFormat.PDF)" />
+                                        <label class="form-check-label" for="formatPDF">
+                                            PDF
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <span asp-validation-for="AvailableFormats" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input asp-for="IsBuyOnly" type="checkbox" class="form-check-input" />
+                            <label asp-for="IsBuyOnly" class="form-check-label">Is Buy Only</label>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                            <a asp-action="AdminBooks" class="btn btn-secondary">Back to List</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="form-group">
-        <label asp-for="CoverImage"></label>
-        <input asp-for="CoverImage" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label asp-for="Genre"></label>
-        <input asp-for="Genre" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label asp-for="Author"></label>
-        <input asp-for="Author" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label asp-for="Publisher"></label>
-        <input asp-for="Publisher" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label asp-for="PurchasePrice"></label>
-        <input asp-for="PurchasePrice" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label asp-for="BorrowPrice"></label>
-        <input asp-for="BorrowPrice" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label asp-for="YearPublished"></label>
-        <input asp-for="YearPublished" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label asp-for="AgeLimit"></label>
-        <input asp-for="AgeLimit" class="form-control" />
-    </div>
-    <div class="form-group">
-        <label asp-for="IsBuyOnly"></label>
-        <input asp-for="IsBuyOnly" type="checkbox" />
-    </div>
-    <div class="form-group">
-        <label asp-for="Formats"></label>
-        <input asp-for="Formats" class="form-control" />
-    </div>
-    <button type="submit" class="btn btn-primary">Save Changes</button>
-</form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
