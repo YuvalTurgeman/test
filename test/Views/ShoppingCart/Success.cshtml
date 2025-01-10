@@ -2,9 +2,12 @@
     ViewBag.Title = "Payment Successful";
 }
 
-<h1>@ViewBag.Message</h1>
-<p>Thank you for your purchase! You can continue shopping or check your order details in your account.</p>
-
-<div style="margin-top: 20px;">
-    <a href="@Url.Action("UserHomePage", "Books")" class="btn btn-primary">Back to Home</a>
+<div class="d-flex justify-content-center align-items-center vh-100 text-center">
+    <div>
+        <h1>@ViewBag.Message</h1>
+        <p>Thank you for your purchase! You can continue shopping or check your order details in your account.</p>
+        <div style="margin-top: 20px;">
+            <a href="@Url.Action("UserHomePage", "Books")" class="btn btn-primary">Back to Home</a>
+        </div>
+    </div>
 </div>
