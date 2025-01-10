@@ -10,14 +10,18 @@ namespace test.Models
         [Required]
         public string Token { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Password is required")]
         [DataType(DataType.Password)]
-        [MinLength(6, ErrorMessage = "Password must be at least 6 characters long.")]
+        [MinLength(8, ErrorMessage = "Password must be at least 8 characters long")]
+        [RegularExpression(@"(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}",
+            ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character")]
         public string NewPassword { get; set; }
 
         [Required]
         [DataType(DataType.Password)]
         [Compare("NewPassword", ErrorMessage = "Passwords do not match.")]
         public string ConfirmPassword { get; set; }
+
+        public bool IsChangePassword { get; set; }
     }
 }

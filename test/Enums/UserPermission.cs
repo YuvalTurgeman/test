@@ -1,4 +1,4 @@
-namespace test.Enums // Change the namespace as per your project structure
+namespace test.Enums 
 {
     public enum UserPermission
     {
