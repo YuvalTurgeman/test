@@ -144,31 +144,32 @@
                         </div>
                         
                         <p class="card-text text-muted">Published: @book.YearPublished</p>
-
+                        <p class="card-text text-muted">Publisher: @book.Publisher</p>
+                        
                         <!-- Price Section -->
                         <p class="card-text">
                             @if (activeDiscount != null)
                             {
                                 <p class="text-danger h5">
                                     <strong>Purchase Price:</strong>
-                                    <span class="text-danger h5">@discountedPurchasePrice?.ToString("C")</span>
-                                    <span class="text-muted text-decoration-line-through">@originalPurchasePrice?.ToString("C")</span>
+                                    <span class="text-danger h5">@discountedPurchasePrice?.ToString("C", new System.Globalization.CultureInfo("en-US"))</span>
+                                    <span class="text-muted text-decoration-line-through">@originalPurchasePrice?.ToString("C", new System.Globalization.CultureInfo("en-US"))</span>
                                 </p>
                                 <p class="text-danger h5">
                                     <strong>Borrow Price:</strong>
-                                    <span class="text-danger h5">@discountedBorrowPrice?.ToString("C")</span>
-                                    <span class="text-muted text-decoration-line-through">@originalBorrowPrice?.ToString("C")</span>
+                                    <span class="text-danger h5">@discountedBorrowPrice?.ToString("C", new System.Globalization.CultureInfo("en-US"))</span>
+                                    <span class="text-muted text-decoration-line-through">@originalBorrowPrice?.ToString("C", new System.Globalization.CultureInfo("en-US"))</span>
                                 </p>
                             }
                             else
                             {
                                 <p class="h5">
                                     <strong>Purchase Price:</strong>
-                                    <span class="h5">@book.PurchasePrice?.ToString("C")</span>
+                                    <span class="h5">@book.PurchasePrice?.ToString("C", new System.Globalization.CultureInfo("en-US"))</span>
                                 </p>
                                 <p class="h5">
                                     <strong>Borrow Price:</strong>
-                                    <span class="h5">@book.BorrowPrice?.ToString("C")</span>
+                                    <span class="h5">@book.BorrowPrice?.ToString("C", new System.Globalization.CultureInfo("en-US"))</span>
                                 </p>
                             }
                         </p>
