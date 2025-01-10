@@ -33,7 +33,7 @@
             <div class="card mb-3">
                 <div class="card-body">
                     <h5 class="card-title">Rating: @review.Rating/5</h5>
-                    @* <p class="card-text">@review.User.Username.ToString()</p> todo: add the username that wrote the review *@
+                    <p class="card-text">@review.User.Username</p> 
                     <p class="card-text">@review.Comment</p>
                     <small class="text-muted">Reviewed on @review.CreatedAt.ToShortDateString()</small>
                 </div>

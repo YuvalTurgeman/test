@@ -19,15 +19,19 @@
     }, "Value", "Text", ViewData["Discounted"]);
 }
 
+
 <style>
     .star-rating {
+        color: #ffd700;
         margin: 0.5rem 0;
     }
 
-    .star-rating .star {
-        color: #ffd700;
-        font-size: 1.2rem;
+    .star-rating .bi-star-fill {
         margin-right: 2px;
+    }
+
+    .star-rating .bi-star-half {
+        color: #ffd700; /* Gold for half stars */
     }
 
     .rating-count {
@@ -118,55 +122,55 @@
 
                         <div class="star-rating">
                             @{
-                                var avgRating = await _ratingDAL.GetAverageRating(book.Id);
-                                var fullStars = (int)Math.Floor(avgRating);
-                                var decimalPart = avgRating - fullStars;
-                                var hasHalfStar = decimalPart >= 0.25 && decimalPart < 0.75;
-                                var emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+                                var avgRating = await _ratingDAL.GetAverageRating(book.Id); 
+                                var fullStars = (int)Math.Floor(avgRating); 
+                                var decimalPart = avgRating - fullStars; 
+                                var hasHalfStar = decimalPart >= 0.25 && decimalPart < 0.75; 
+                                var emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0); 
                             }
-                            @for (int i = 1; i <= fullStars; i++)
+                            @for (int i = 1; i <= fullStars; i++) 
                             {
-                                <span class="star">★</span>
+                                <i class="bi bi-star-fill"></i>
                             }
-                            @if (hasHalfStar)
+                            @if (hasHalfStar) 
                             {
-                                <span class="star">⭐</span>
+                                <i class="bi bi-star-half"></i>
                             }
-                            @for (int i = 1; i <= emptyStars; i++)
+                            @for (int i = 1; i <= emptyStars; i++) 
                             {
-                                <span class="star">☆</span>
+                                <i class="bi bi-star"></i>
                             }
                             <span class="rating-count">(@avgRating.ToString("F1"))</span>
                         </div>
-
+                        
                         <p class="card-text text-muted">Published: @book.YearPublished</p>
 
                         <!-- Price Section -->
                         <p class="card-text">
                             @if (activeDiscount != null)
                             {
-                            <p class="text-danger h5">
-                                <strong>Purchase Price:</strong>
-                                <span class="text-danger h5">@discountedPurchasePrice?.ToString("C")</span>
-                                <span class="text-muted text-decoration-line-through">@originalPurchasePrice?.ToString("C")</span>
-                            </p>
-                            <p class="text-danger h5">
-                                <strong>Borrow Price:</strong>
-                                <span class="text-danger h5">@discountedBorrowPrice?.ToString("C")</span>
-                                <span class="text-muted text-decoration-line-through">@originalBorrowPrice?.ToString("C")</span>
-                            </p>
-                        }
-                        else
-                        {
-                            <p class="h5">
-                                <strong>Purchase Price:</strong>
-                                <span class="h5">@book.PurchasePrice?.ToString("C")</span>
-                            </p>
-                            <p class="h5">
-                                <strong>Borrow Price:</strong>
-                                <span class="h5">@book.BorrowPrice?.ToString("C")</span>
-                            </p>
-                        }
+                                <p class="text-danger h5">
+                                    <strong>Purchase Price:</strong>
+                                    <span class="text-danger h5">@discountedPurchasePrice?.ToString("C")</span>
+                                    <span class="text-muted text-decoration-line-through">@originalPurchasePrice?.ToString("C")</span>
+                                </p>
+                                <p class="text-danger h5">
+                                    <strong>Borrow Price:</strong>
+                                    <span class="text-danger h5">@discountedBorrowPrice?.ToString("C")</span>
+                                    <span class="text-muted text-decoration-line-through">@originalBorrowPrice?.ToString("C")</span>
+                                </p>
+                            }
+                            else
+                            {
+                                <p class="h5">
+                                    <strong>Purchase Price:</strong>
+                                    <span class="h5">@book.PurchasePrice?.ToString("C")</span>
+                                </p>
+                                <p class="h5">
+                                    <strong>Borrow Price:</strong>
+                                    <span class="h5">@book.BorrowPrice?.ToString("C")</span>
+                                </p>
+                            }
                         </p>
 
                         <p class="card-text text-muted">Genre: @(book.Genre.ToString())</p>

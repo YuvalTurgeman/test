@@ -33,14 +33,12 @@ namespace test.Controllers
         [Authorize (Roles = "Customer")]
         public async Task<IActionResult> WriteReview(ReviewModel review)
         {
-            Console.WriteLine("1");
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
             var existingReview = await _reviewDAL.GetReviewByUserIdAsync(userId);
             
             Console.WriteLine(userId);
             Console.WriteLine(existingReview);
             
-            Console.WriteLine("2");
             // if (!ModelState.IsValid)
             // {
             //     Console.WriteLine("3");

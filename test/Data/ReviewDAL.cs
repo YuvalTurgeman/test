@@ -21,10 +21,18 @@ namespace test.Data
             return await _context.WebsiteReviews.FirstOrDefaultAsync(r => r.UserId == userId);
         }
 
-        // Get all reviews
+        // // Get all reviews
+        // public async Task<List<ReviewModel>> GetAllReviewsAsync()
+        // {
+        //     return await _context.WebsiteReviews.OrderByDescending(r => r.CreatedAt).ToListAsync();
+        // }
+        
         public async Task<List<ReviewModel>> GetAllReviewsAsync()
         {
-            return await _context.WebsiteReviews.OrderByDescending(r => r.CreatedAt).ToListAsync();
+            return await _context.WebsiteReviews
+                .Include(r => r.User) // Include User navigation property
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
         }
 
         // Add a new review
