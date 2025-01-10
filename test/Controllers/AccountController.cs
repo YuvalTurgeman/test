@@ -9,18 +9,18 @@ using test.Models;
 using test.Enums;
 using test.Services;
 using test.ViewModels;
-    
+
 namespace test.Controllers
 {
     public class AccountController : BaseController
     {
         private readonly UserDAL _userDAL;
         private readonly EmailService _emailService;
-        
+
         public AccountController(UserDAL userDAL, EmailService emailService)
         {
             _userDAL = userDAL;
-            _emailService = emailService; 
+            _emailService = emailService;
         }
 
 
@@ -30,7 +30,7 @@ namespace test.Controllers
             ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
-        
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(string email, string password, string returnUrl = null)
@@ -86,73 +86,72 @@ namespace test.Controllers
         {
             return View();
         }
-        
+
         //POST: Account/Register
         [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Register(User user, string confirmPassword)
-    {
-        try
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Register(User user, string confirmPassword)
         {
-            
-            if (string.IsNullOrWhiteSpace(user.Username))
+            try
             {
-                ViewData["ErrorMessage"] = "Username is required.";
+                if (string.IsNullOrWhiteSpace(user.Username))
+                {
+                    ViewData["ErrorMessage"] = "Username is required.";
+                    return View(user);
+                }
+
+
+                if (user.Password != confirmPassword)
+                {
+                    ViewData["ErrorMessage"] = "Passwords do not match.";
+                    return View(user);
+                }
+
+                var isEmailUnique = await _userDAL.IsEmailUniqueAsync(user.Email);
+
+                if (!isEmailUnique)
+                {
+                    ViewData["ErrorMessage"] = "This email is already registered.";
+                    return View(user);
+                }
+
+                // Hash password and set default permission
+                user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+                user.Permission = Enums.UserPermission.Customer;
+
+                var createdUser = await _userDAL.CreateUserAsync(user);
+
+                // Create claims and sign in
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, createdUser.Id.ToString()),
+                    new Claim(ClaimTypes.Name, createdUser.Username),
+                    new Claim(ClaimTypes.Email, createdUser.Email),
+                    new Claim(ClaimTypes.Role, createdUser.Permission.ToString())
+                };
+
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var authProperties = new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
+                };
+
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity),
+                    authProperties);
+
+                HttpContext.Session.SetInt32("UserId", createdUser.Id);
+
+                return RedirectToAction("Login", "Account");
+            }
+            catch (Exception ex)
+            {
+                ViewData["ErrorMessage"] = "An error occurred during registration. Please try again.";
                 return View(user);
             }
-            
-
-            if (user.Password != confirmPassword)
-            {
-                ViewData["ErrorMessage"] = "Passwords do not match.";
-                return View(user);
-            }
-
-            var isEmailUnique = await _userDAL.IsEmailUniqueAsync(user.Email);
-
-            if (!isEmailUnique)
-            {
-                ViewData["ErrorMessage"] = "This email is already registered.";
-                return View(user);
-            }
-
-            // Hash password and set default permission
-            user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
-            user.Permission = Enums.UserPermission.Customer;
-            
-            var createdUser = await _userDAL.CreateUserAsync(user);
-
-            // Create claims and sign in
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, createdUser.Id.ToString()),
-                new Claim(ClaimTypes.Name, createdUser.Username),
-                new Claim(ClaimTypes.Email, createdUser.Email),
-                new Claim(ClaimTypes.Role, createdUser.Permission.ToString())
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
-            };
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties);
-
-            HttpContext.Session.SetInt32("UserId", createdUser.Id);
-            
-            return RedirectToAction("Login", "Account");
         }
-        catch (Exception ex)
-        {
-            ViewData["ErrorMessage"] = "An error occurred during registration. Please try again.";
-            return View(user);
-        }
-    }
 
         // GET: Account/ShowUser
         public async Task<IActionResult> ShowUser(int? id)
@@ -239,44 +238,54 @@ namespace test.Controllers
             TempData["Success"] = "Email updated successfully.";
             return RedirectToAction("ShowUser", new { id });
         }
+        
 
-        // POST: Account/EditPassword
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditPassword(int id, string newPassword, string confirmPassword)
         {
+            Console.WriteLine("1");
             var userId = HttpContext.Session.GetInt32("UserId");
             if (!userId.HasValue || userId.Value != id)
             {
                 return RedirectToAction("Login");
             }
 
+            Console.WriteLine("2");
             var user = await _userDAL.GetUserByIdAsync(id);
             if (user == null)
             {
                 return NotFound();
             }
 
-            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
-            {
-                TempData["Error"] = "Password must be at least 6 characters long.";
-                return RedirectToAction("ShowUser", new { id });
-            }
-
-            if (newPassword != confirmPassword)
-            {
-                TempData["Error"] = "Passwords do not match.";
-                return RedirectToAction("ShowUser", new { id });
-            }
-
-            user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            Console.WriteLine("3");
+            // Generate and save the reset token
+            var token = Guid.NewGuid().ToString();
+            user.ResetToken = token;
+            user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
             await _userDAL.UpdateUserAsync(user);
+            Console.WriteLine("5");
+            // Generate reset link
+            var resetLink = Url.Action(
+                "ResetPassword",
+                "Account",
+                new { token = token, email = user.Email, isChangePassword = true },
+                Request.Scheme);
 
-            TempData["Success"] = "Password updated successfully.";
+            // Send email
+            var emailBody = $@"
+    <h1>Password Change Request</h1>
+    <p>Click the link below to confirm and change your password:</p>
+    <a href='{resetLink}'>Change Password</a>
+    <p>If you did not request this, please ignore this email.</p>";
+            await _emailService.SendEmailAsync(user.Email, "Confirm Password Change", emailBody);
+
+            TempData["Message"] = "A password change link has been sent to your email.";
+            Console.WriteLine($"Generated Reset Link: {resetLink}");
             return RedirectToAction("ShowUser", new { id });
         }
-        
-        
+
+
         public async Task<IActionResult> Logout()
         {
             // Clear authentication cookie
@@ -290,13 +299,13 @@ namespace test.Controllers
 
             return RedirectToAction("Login", "Account");
         }
-        
+
         [HttpGet]
         public IActionResult ForgotPassword()
         {
             return View();
         }
-        
+
         [HttpPost]
         public async Task<IActionResult> ForgotPassword(string email)
         {
@@ -332,56 +341,88 @@ namespace test.Controllers
             TempData["Message"] = "If the email exists in our system, a reset link has been sent.";
             return RedirectToAction("ForgotPassword");
         }
-        
-        
+
         [HttpGet]
-        public IActionResult ResetPassword(string token, string email)
+        public async Task<IActionResult> ResetPassword(string token, string email, bool isChangePassword = false)
         {
-            // Check if token or email is missing
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(email))
+            var user = await _userDAL.GetUserByEmailAsync(email);
+            if (user == null || user.ResetToken != token || user.ResetTokenExpires < DateTime.UtcNow)
             {
-                TempData["Error"] = "Invalid password reset request.";
-                return RedirectToAction("ForgotPassword");
+                TempData["Error"] = "Invalid or expired token.";
+                return RedirectToAction("Login");
             }
 
-            // Pass the token and email to the view
-            var model = new ResetPassword
-            {
-                Token = token,
-                Email = email
-            };
+            ViewBag.Title = isChangePassword ? "Change Password" : "Reset Password";
+            ViewBag.Message = isChangePassword
+                ? "Enter your new password to complete the change."
+                : "Enter your new password to reset your account.";
+            ViewBag.IsChangePassword = isChangePassword;
+            Console.WriteLine($"isChangePassword: {isChangePassword}");
+            ViewData["Token"] = token;
+            ViewData["Email"] = email;
+            ViewData["IsChangePassword"] = isChangePassword;
 
-            return View(model); // Render the ResetPassword view
+
+            return View();
         }
         
+        
         [HttpPost]
-        public async Task<IActionResult> ResetPassword(ResetPassword model)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(string token, string email, string newPassword, string confirmPassword, bool isChangePassword = false)
         {
-            if (!ModelState.IsValid)
+            // Retrieve the user based on the provided email
+            var user = await _userDAL.GetUserByEmailAsync(email);
+            if (user == null || user.ResetToken != token || user.ResetTokenExpires < DateTime.UtcNow)
             {
-                TempData["Error"] = "Invalid input. Please check the form and try again.";
-                return View(model);
+                TempData["Error"] = "Invalid or expired token.";
+                return RedirectToAction("Login");
             }
 
-            var user = await _userDAL.GetUserByEmailAsync(model.Email);
-            if (user == null || user.ResetToken != model.Token || user.ResetTokenExpires < DateTime.UtcNow)
+            // Validate new password
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
             {
-                TempData["Error"] = "Invalid or expired reset token.";
-                return RedirectToAction("ResetPassword", new { token = model.Token, email = model.Email });
+                TempData["Error"] = "Password must be at least 6 characters long.";
+                ViewBag.Title = isChangePassword ? "Change Password" : "Reset Password";
+                ViewBag.Message = isChangePassword
+                    ? "Enter your new password to complete the change."
+                    : "Enter your new password to reset your account.";
+                return View();
             }
 
-            // Update the user's password
-            user.Password = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
+            if (newPassword != confirmPassword)
+            {
+                TempData["Error"] = "Passwords do not match.";
+                ViewBag.Title = isChangePassword ? "Change Password" : "Reset Password";
+                ViewBag.Message = isChangePassword
+                    ? "Enter your new password to complete the change."
+                    : "Enter your new password to reset your account.";
+                return View();
+            }
+
+            // Update the password and clear the reset token
+            user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
             user.ResetToken = null;
             user.ResetTokenExpires = null;
             await _userDAL.UpdateUserAsync(user);
 
-            TempData["Success"] = "Your password has been reset successfully!";
-            return RedirectToAction("Login");
+            // Notify success and redirect to the login page
+            TempData["Success"] = isChangePassword
+                ? "Your password has been successfully changed."
+                : "Your password has been successfully reset.";
+            
+            if (isChangePassword)
+            {
+                return RedirectToAction("UserHomePage", "Books");
+            }
+            else
+            {
+                return RedirectToAction("Login");
+            }
         }
 
 
-        
+
         // Admin Actions
         [HttpGet]
         [Authorize(Roles = "Admin")]
@@ -415,6 +456,7 @@ namespace test.Controllers
                 await _userDAL.CreateUserAsync(user);
                 return RedirectToAction("AdminUserManagement");
             }
+
             return View(user);
         }
 
@@ -427,6 +469,7 @@ namespace test.Controllers
             {
                 return NotFound();
             }
+
             return View(user);
         }
 
@@ -455,6 +498,7 @@ namespace test.Controllers
                 await _userDAL.UpdateUserAsync(user);
                 return RedirectToAction("AdminUserManagement");
             }
+
             return View(updatedUser);
         }
 
@@ -467,9 +511,10 @@ namespace test.Controllers
             {
                 return RedirectToAction("AdminUserManagement");
             }
+
             return NotFound();
         }
-        
+
         // GET: Account/AccessDenied
         [HttpGet]
         public IActionResult AccessDenied()
@@ -478,6 +523,5 @@ namespace test.Controllers
             Console.WriteLine($"Access denied for user: {user}");
             return View();
         }
-        
     }
 }
