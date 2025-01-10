@@ -121,85 +121,100 @@ namespace test.Controllers
             }
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Customer")]
-        public async Task<IActionResult> AddToCart(int bookId, bool isBorrow)
+            [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Customer")]
+    public async Task<IActionResult> AddToCart(int bookId, bool isBorrow)
+    {
+        try
         {
-            try
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            var book = await _bookDAL.GetBookByIdAsync(bookId);
+
+            if (book == null)
             {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var book = await _bookDAL.GetBookByIdAsync(bookId);
-
-                if (book == null)
-                {
-                    TempData["Error"] = "Book not found.";
-                    return RedirectToAction("Index", "Book");
-                }
-
-                if (isBorrow)
-                {
-                    // Check if user already has this book borrowed
-                    if (await _borrowDAL.HasUserBorrowedBookAsync(userId, bookId))
-                    {
-                        TempData["Error"] = "You already have this book borrowed.";
-                        return RedirectToAction("MyBorrows", "Borrow");
-                    }
-
-                    // Check if user has reached borrow limit
-                    if (await _borrowDAL.HasReachedBorrowLimitAsync(userId))
-                    {
-                        TempData["Error"] = "You can only borrow up to 3 different books at a time.";
-                        return RedirectToAction("MyBorrows", "Borrow");
-                    }
-
-                    var availableCopies = await _bookDAL.GetAvailableCopiesAsync(bookId);
-                    if (availableCopies <= 0)
-                    {
-                        await _waitingListDAL.AddToWaitingListAsync(userId, bookId);
-                        TempData["Success"] = "Added to waiting list as the book is currently unavailable.";
-                        return RedirectToAction("Index", "Book");
-                    }
-                }
-
-                var cart = await _cartDAL.GetOrCreateCartAsync(userId);
-
-                var existingItem = cart.CartItems.FirstOrDefault(i => i.BookId == bookId);
-                if (existingItem != null)
-                {
-                    if (isBorrow)
-                    {
-                        existingItem.Quantity = 1; // Force quantity to 1 for borrow items
-                    }
-
-                    existingItem.IsBorrow = isBorrow;
-                    existingItem.FinalPrice = isBorrow ? book.BorrowPrice : book.PurchasePrice;
-                    await _cartItemDAL.UpdateAsync(existingItem);
-                    TempData["Success"] = $"Cart updated for {(isBorrow ? "borrowing" : "purchasing")}.";
-                }
-                else
-                {
-                    var cartItem = new CartItemModel
-                    {
-                        BookId = bookId,
-                        ShoppingCartId = cart.Id,
-                        IsBorrow = isBorrow,
-                        DateAdded = DateTime.UtcNow,
-                        FinalPrice = isBorrow ? book.BorrowPrice : book.PurchasePrice,
-                        Quantity = isBorrow ? 1 : 1 // Default quantity, force 1 for borrow
-                    };
-                    await _cartItemDAL.AddItemAsync(cartItem);
-                    TempData["Success"] = $"Book added to cart for {(isBorrow ? "borrowing" : "purchasing")}.";
-                }
-
-                return RedirectToAction("Index");
-            }
-            catch (Exception ex)
-            {
-                TempData["Error"] = ex.Message;
+                TempData["Error"] = "Book not found.";
                 return RedirectToAction("Index", "Book");
             }
+
+            if (isBorrow)
+            {
+                // Check if user already has this book borrowed
+                if (await _borrowDAL.HasUserBorrowedBookAsync(userId, bookId))
+                {
+                    TempData["Error"] = "You already have this book borrowed.";
+                    return RedirectToAction("MyBorrows", "Borrow");
+                }
+
+                // Check if user has reached borrow limit
+                if (await _borrowDAL.HasReachedBorrowLimitAsync(userId))
+                {
+                    TempData["Error"] = "You can only borrow up to 3 different books at a time.";
+                    return RedirectToAction("MyBorrows", "Borrow");
+                }
+
+                var availableCopies = await _bookDAL.GetAvailableCopiesAsync(bookId);
+                if (availableCopies <= 0)
+                {
+                    await _waitingListDAL.AddToWaitingListAsync(userId, bookId);
+                    TempData["Success"] = "Added to waiting list as the book is currently unavailable.";
+                    return RedirectToAction("Index", "Book");
+                }
+            }
+
+            var cart = await _cartDAL.GetOrCreateCartAsync(userId);
+
+            // Check for active discount
+            var activeDiscount = book.Discounts
+                .FirstOrDefault(d => d.IsActive && 
+                                   d.StartDate <= DateTime.UtcNow && 
+                                   d.EndDate >= DateTime.UtcNow);
+
+            // Calculate the final price with discount if applicable
+            decimal finalPrice = isBorrow ? (book.BorrowPrice ?? 0) : (book.PurchasePrice ?? 0);
+            if (activeDiscount != null)
+            {
+                finalPrice -= (finalPrice * activeDiscount.DiscountAmount / 100);
+            }
+
+            var existingItem = cart.CartItems.FirstOrDefault(i => i.BookId == bookId);
+            if (existingItem != null)
+            {
+                if (isBorrow)
+                {
+                    existingItem.Quantity = 1; // Force quantity to 1 for borrow items
+                }
+
+                existingItem.IsBorrow = isBorrow;
+                existingItem.FinalPrice = finalPrice;
+                existingItem.DiscountId = activeDiscount?.Id;
+                await _cartItemDAL.UpdateAsync(existingItem);
+                TempData["Success"] = $"Cart updated for {(isBorrow ? "borrowing" : "purchasing")}.";
+            }
+            else
+            {
+                var cartItem = new CartItemModel
+                {
+                    BookId = bookId,
+                    ShoppingCartId = cart.Id,
+                    IsBorrow = isBorrow,
+                    DateAdded = DateTime.UtcNow,
+                    FinalPrice = finalPrice,
+                    DiscountId = activeDiscount?.Id,
+                    Quantity = 1 // Default quantity, force 1 for borrow
+                };
+                await _cartItemDAL.AddItemAsync(cartItem);
+                TempData["Success"] = $"Book added to cart for {(isBorrow ? "borrowing" : "purchasing")}.";
+            }
+
+            return RedirectToAction("Index");
         }
+        catch (Exception ex)
+        {
+            TempData["Error"] = ex.Message;
+            return RedirectToAction("Index", "Book");
+        }
+    }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
