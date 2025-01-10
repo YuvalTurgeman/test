@@ -1,8 +1,4 @@
 ﻿@model test.Models.User
-@if (ViewData["LoginError"] != null)
-{
-    <div class="alert alert-danger">@ViewData["LoginError"]</div>
-}
 
 @if (TempData["Message"] != null)
 {
@@ -11,12 +7,28 @@
 </div>
 }
 
+@if (TempData["Success"] != null)
+{
+<div class="alert alert-success" role="alert">
+    @TempData["Success"]
+</div>
+}
+
+@if (ViewData["LoginError"] != null)
+{
+<div class="alert alert-danger">@ViewData["LoginError"]</div>
+}
+
+<div class="container mt-5">
+    <!-- Login Form -->
+</div>
+
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card shadow-lg">
                 <div class="card-header text-center">
-                    <h3 class="mb-0">Log In</h3>
+                    <h3 class="mb-0">Log in</h3>
                 </div>
                 <div class="card-body">
                     <form asp-action="Login" asp-controller="Account" method="post">
@@ -38,7 +50,7 @@
                             </div>
                         }
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Log In</button>
+                            <button type="submit" class="btn btn-primary">Log in</button>
                         </div>
                     </form>
                 </div>
