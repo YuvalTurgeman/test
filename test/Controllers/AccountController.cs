@@ -145,13 +145,6 @@ namespace test.Controllers
 
             HttpContext.Session.SetInt32("UserId", createdUser.Id);
             
-            // Send welcome email
-            // string subject = "Welcome to DigiReads!";
-            // string body = $"<p>Dear {user.Username},</p><p>Thank you for registering at DigiReads!</p>";
-            // await _emailService.SendEmailAsync(user.Email, subject, body);
-
-            //_emailService.TestEmailAsync();
-            
             return RedirectToAction("Login", "Account");
         }
         catch (Exception ex)
@@ -282,15 +275,7 @@ namespace test.Controllers
             TempData["Success"] = "Password updated successfully.";
             return RedirectToAction("ShowUser", new { id });
         }
-
-        // public async Task<IActionResult> Logout()
-        // {
-        //     // Clear both cookie and session
-        //     await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        //     HttpContext.Session.Clear();
-        //
-        //     return RedirectToAction("Login");
-        // }
+        
         
         public async Task<IActionResult> Logout()
         {
@@ -311,44 +296,6 @@ namespace test.Controllers
         {
             return View();
         }
-
-        // [HttpPost]
-        // public async Task<IActionResult> ForgotPassword(string email)
-        // {
-        //     var user = await _userDAL.GetUserByEmailAsync(email);
-        //     if (user == null)
-        //     {
-        //         // Don't disclose that the email doesn't exist to avoid giving hints
-        //         TempData["Message"] = "If the email is registered, a reset link has been sent.";
-        //         return RedirectToAction("ForgotPassword");
-        //     }
-        //
-        //     // Generate a unique token
-        //     var token = Guid.NewGuid().ToString();
-        //
-        //     // Save the token and expiration in the database (e.g., 1 hour validity)
-        //     user.ResetToken = token;
-        //     user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
-        //     await _userDAL.UpdateUserAsync(user);
-        //
-        //     // Create a reset link
-        //     var resetLink = Url.Action(
-        //         "ResetPassword",
-        //         "Account",
-        //         new { token = token, email = user.Email },
-        //         Request.Scheme);
-        //
-        //     // Send the email
-        //     var emailBody = $@"
-        //     <h1>Password Reset Request</h1>
-        //     <p>You requested to reset your password. Click the link below to reset it:</p>
-        //     <a href='{resetLink}'>Reset Password</a>
-        //     <p>If you did not request this, please ignore this email.</p>";
-        //     await _emailService.SendEmailAsync(user.Email, "Reset Your Password", emailBody);
-        //
-        //     TempData["Message"] = "If the email is registered, a reset link has been sent.";
-        //     return RedirectToAction("ForgotPassword");
-        // }
         
         [HttpPost]
         public async Task<IActionResult> ForgotPassword(string email)
@@ -406,47 +353,6 @@ namespace test.Controllers
 
             return View(model); // Render the ResetPassword view
         }
-
-        // [HttpPost]
-        // public async Task<IActionResult> ResetPassword(ResetPassword model)
-        // {   
-        //     //for debugging purposes
-        //     if (!ModelState.IsValid)
-        //     {
-        //         foreach (var key in ModelState.Keys)
-        //         {
-        //             var state = ModelState[key];
-        //             foreach (var error in state.Errors)
-        //             {
-        //                 Console.WriteLine($"Key: {key}, Error: {error.ErrorMessage}");
-        //             }
-        //         }
-        //         return View(model);
-        //     }
-        //     
-        //     var user = await _userDAL.GetUserByEmailAsync(model.Email);
-        //     if (user == null || user.ResetToken != model.Token || user.ResetTokenExpires < DateTime.UtcNow)
-        //     {
-        //         TempData["Error"] = "Invalid or expired reset token.";
-        //         return RedirectToAction("ForgotPassword");
-        //     }
-        //     try
-        //     {
-        //         user.Password = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
-        //         user.ResetToken = null;
-        //         user.ResetTokenExpires = null;
-        //         await _userDAL.UpdateUserAsync(user);
-        //         TempData["Success"] = "Password reset successfully!";
-        //         return RedirectToAction("Login");
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         Console.WriteLine($"Error while updating password: {ex.Message}");
-        //         TempData["Error"] = "An error occurred while resetting the password.";
-        //         return View(model);
-        //     }
-        //     
-        // }
         
         [HttpPost]
         public async Task<IActionResult> ResetPassword(ResetPassword model)
