@@ -77,13 +77,15 @@ namespace test.Controllers
                     return RedirectToAction("UserHomePage", "Books");
                 }
 
+                var finalPrice = await _bookDAL.GetEffectivePurchasePriceAsync(bookId); 
+                    
                 var purchaseInfo = new TempPurchaseInfo
                 {
                     BookId = bookId,
                     UserId = userId,
                     Quantity = 1,
                     IsBuyNow = true,
-                    Price = book.PurchasePrice ?? 0m
+                    Price = finalPrice?? 0m
                 };
 
                 TempData[TempPurchaseKey] = JsonSerializer.Serialize(purchaseInfo);
@@ -99,7 +101,7 @@ namespace test.Controllers
                             {
                                 Name = book.Title
                             },
-                            UnitAmount = Convert.ToInt64(book.PurchasePrice * 100)
+                            UnitAmount = Convert.ToInt64(finalPrice * 100)
                         },
                         Quantity = 1
                     }

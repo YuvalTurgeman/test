@@ -82,6 +82,8 @@ namespace test.Controllers
                     // Get or create cart
                     var cart = await _shoppingCartDAL.GetOrCreateCartAsync(userId);
 
+                    var finalPrice = await _bookDAL.GetEffectiveBorrowPriceAsync(id);
+                    
                     // Create cart item
                     var cartItem = new CartItemModel
                     {
@@ -90,7 +92,7 @@ namespace test.Controllers
                         IsBorrow = true,
                         Quantity = 1,
                         DateAdded = DateTime.UtcNow,
-                        FinalPrice = book.BorrowPrice
+                        FinalPrice = finalPrice
                     };
 
                     // Add item to cart

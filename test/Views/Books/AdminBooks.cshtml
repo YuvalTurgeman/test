@@ -1,127 +1,3 @@
-@*@using Microsoft.AspNetCore.Mvc.TagHelpers
-@model IEnumerable<test.Models.BookModel>
-
-<h1>Manage Books</h1>
-
-<table class="table table-responsive">
-    <thead>
-    <tr>
-        <th>Title</th>
-        <th>Cover Image</th>
-        <th>Genre</th>
-        <th>Author</th>
-        <th>Publisher</th>
-        <th>Purchase Price</th>
-        <th>Borrow Price</th>
-        <th>Year Published</th>
-        <th>Age Limit</th>
-        <th>Formats</th>
-        <th>Is Buy Only</th>
-        <th>Discount</th>
-        <th>Actions</th>
-    </tr>
-    </thead>
-    <tbody>
-    @foreach (var book in Model)
-    {
-        var activeDiscount = book.Discounts?
-            .FirstOrDefault(d => d.IsActive &&
-                                 d.StartDate.ToUniversalTime() <= DateTime.UtcNow &&
-                                 d.EndDate.ToUniversalTime() > DateTime.UtcNow);
-
-        var hasDiscount = activeDiscount != null;
-        var originalPrice = book.PurchasePrice ?? 0;
-        var discountedPrice = hasDiscount
-            ? originalPrice * (1 - activeDiscount.DiscountAmount / 100)
-            : originalPrice;
-
-        <tr>
-            <td>@Html.Encode(book.Title)</td>
-            <td>
-                @if (!string.IsNullOrEmpty(book.CoverImage))
-                {
-                    <img src="@Html.Encode(book.CoverImage)" alt="@Html.Encode(book.Title) Cover" style="width: 50px; height: auto;" />
-                }
-                else
-                {
-                    <span>No Image</span>
-                }
-            </td>
-            <td>@Html.Encode(book.Genre)</td>
-            <td>@Html.Encode(book.Author)</td>
-            <td>@Html.Encode(book.Publisher)</td>
-            <td>
-                @if (hasDiscount)
-                {
-                    <div>
-                        <span class="text-muted text-decoration-line-through">
-                            @originalPrice.ToString("C", System.Globalization.CultureInfo.CurrentCulture)
-                        </span>
-                        <span class="text-danger ms-2">
-                            @discountedPrice.ToString("C", System.Globalization.CultureInfo.CurrentCulture)
-                        </span>
-                    </div>
-                }
-                else
-                {
-                    @(book.PurchasePrice?.ToString("C", System.Globalization.CultureInfo.CurrentCulture) ?? "N/A")
-                }
-            </td>
-            <td>@book.BorrowPrice?.ToString("C", System.Globalization.CultureInfo.CurrentCulture) ?? "N/A"</td>
-            <td>@book.YearPublished?.ToString() ?? "N/A"</td>
-            <td>@Html.Encode(book.AgeLimit) ?? "N/A"</td>
-            <td>@Html.Encode(book.Formats) ?? "N/A"</td>
-            <td>@(book.IsBuyOnly ? "Yes" : "No")</td>
-            <td>
-                @if (hasDiscount)
-                {
-                    <div>
-                        <span class="badge bg-success">@activeDiscount.DiscountAmount%</span>
-                        <small class="d-block text-muted">
-                            Until @activeDiscount.EndDate.ToLocalTime().ToString("g")
-                        </small>
-                    </div>
-                }
-                else
-                {
-                    <span>No discount</span>
-                }
-            </td>
-            <td>
-                <a href="@Url.Action("Edit", "Books", new { id = book.Id })" class="btn btn-primary btn-sm" aria-label="Edit @book.Title">Edit</a>
-                <form asp-action="DeleteConfirmed" asp-route-id="@book.Id" method="post" style="display:inline;" onsubmit="return confirmDelete();">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-danger btn-sm" aria-label="Delete @book.Title">Delete</button>
-                </form>
-
-                @if (!hasDiscount)
-                {
-                    <a href="@Url.Action("Create", "Discount", new { id = book.Id })" class="btn btn-sm btn-success">
-                        Add Discount
-                    </a>
-                }
-                else
-                {
-                    <a asp-controller="Discount" asp-action="Edit" asp-route-id="@activeDiscount.Id"
-                       class="btn btn-warning btn-sm" aria-label="Edit discount for @book.Title">
-                        Edit Discount
-                    </a>
-                }
-            </td>
-        </tr>
-    }
-    </tbody>
-</table>
-
-<div class="mt-3">
-    <a href="@Url.Action("Create", "Books")" class="btn btn-success">Add New Book</a>
-</div>
-
-<script>
-    function confirmDelete() {
-        return confirm("Are you sure you want to delete this book?");
-    }
-</script>*@
 @using Microsoft.AspNetCore.Mvc.TagHelpers
 @model IEnumerable<test.Models.BookModel>
 
@@ -156,10 +32,17 @@
                            d.EndDate.ToUniversalTime() > DateTime.UtcNow);
 
                    var hasDiscount = activeDiscount != null;
-                   var originalPrice = book.PurchasePrice ?? 0;
-                   var discountedPrice = hasDiscount
-                       ? originalPrice * (1 - activeDiscount.DiscountAmount / 100)
-                       : originalPrice;
+                   var originalPurchasePrice = book.PurchasePrice ?? 0;
+                   var discountedPurchasePrice = hasDiscount
+                       ? originalPurchasePrice * (1 - activeDiscount.DiscountAmount / 100)
+                       : originalPurchasePrice;
+                   
+                   var originalBorrowPrice = book.BorrowPrice ?? 0;
+                   var discountedBorrowPrice = hasDiscount
+                       ? originalBorrowPrice * (1 - activeDiscount.DiscountAmount / 100)
+                       : originalBorrowPrice;
+
+
 
                    <tr>
                        <td>@book.Title</td>
@@ -183,19 +66,39 @@
                            {
                                <div>
                                    <del class="text-muted">
-                                       @originalPrice.ToString("C")
+                                       @originalPurchasePrice.ToString("C", new System.Globalization.CultureInfo("en-US"))
                                    </del>
                                    <div class="text-danger fw-bold">
-                                       @discountedPrice.ToString("C")
+                                       @discountedPurchasePrice.ToString("C", new System.Globalization.CultureInfo("en-US"))
                                    </div>
                                </div>
                            }
                            else
                            {
-                               @(book.PurchasePrice?.ToString("C") ?? "N/A")
+                               @(book.PurchasePrice?.ToString("C", new System.Globalization.CultureInfo("en-US")) ?? "N/A")
                            }
                        </td>
-                       <td>@(book.BorrowPrice?.ToString("C") ?? "N/A")</td>
+                       <td>
+                           @if(book.IsBuyOnly){
+                               <span class="text-muted">-</span>
+                           }
+                           else if (hasDiscount)
+                           {
+                               <div>
+                                   <del class="text-muted">
+                                       @originalBorrowPrice.ToString("C", new System.Globalization.CultureInfo("en-US"))
+                                   </del>
+                                   <div class="text-danger fw-bold">
+                                       @discountedBorrowPrice.ToString("C", new System.Globalization.CultureInfo("en-US"))
+                                   </div>
+                               </div>
+                           }
+                           else
+                           {
+                               @(book.BorrowPrice?.ToString("C", new System.Globalization.CultureInfo("en-US")) ?? "N/A")
+                           }
+                       </td>
+                       
                        <td>@(book.YearPublished ?? 0)</td>
                        <td>@(book.AgeLimit ?? "N/A")</td>
                        <td>
