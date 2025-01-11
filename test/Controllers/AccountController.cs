@@ -259,27 +259,95 @@ namespace test.Controllers
         }
 
 
+        //     [HttpPost]
+        //     [ValidateAntiForgeryToken] 
+        //     public async Task<IActionResult> EditPassword(int id, string newPassword, string confirmPassword)
+        //     {
+        //         var userId = HttpContext.Session.GetInt32("UserId");
+        //         if (!userId.HasValue || userId.Value != id)
+        //         {
+        //             return RedirectToAction("Login");
+        //         }
+        //         
+        //         var user = await _userDAL.GetUserByIdAsync(id);
+        //         if (user == null)
+        //         {
+        //             return NotFound();
+        //         }
+        //         
+        //         // Generate and save the reset token
+        //         var token = Guid.NewGuid().ToString();
+        //         user.ResetToken = token;
+        //         user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
+        //         await _userDAL.UpdateUserAsync(user);
+        //         // Generate reset link
+        //         var resetLink = Url.Action(
+        //             "ResetPassword",
+        //             "Account",
+        //             new { token = token, email = user.Email, isChangePassword = true },
+        //             Request.Scheme);
+        //
+        //         // Send email
+        //         var emailBody = $@"
+        // <h1>Password Change Request</h1>
+        // <p>Click the link below to confirm and change your password:</p>
+        // <a href='{resetLink}'>Change Password</a>
+        // <p>If you did not request this, please ignore this email.</p>";
+        //         await _emailService.SendEmailAsync(user.Email, "Confirm Password Change", emailBody);
+        //
+        //         TempData["Message"] = "A password change link has been sent to your email.";
+        //         Console.WriteLine($"Generated Reset Link: {resetLink}");
+        //         return RedirectToAction("ShowUser", new { id });
+        //     }
+
         [HttpPost]
-        [ValidateAntiForgeryToken] //todo: implement strong password here
+        [ValidateAntiForgeryToken]
+        [Authorize] // Ensure the user is authenticated
         public async Task<IActionResult> EditPassword(int id, string newPassword, string confirmPassword)
         {
+            // Verify the logged-in user's ID matches the requested ID
             var userId = HttpContext.Session.GetInt32("UserId");
             if (!userId.HasValue || userId.Value != id)
             {
                 return RedirectToAction("Login");
             }
-            
+
+            // Retrieve the user from the database
             var user = await _userDAL.GetUserByIdAsync(id);
             if (user == null)
             {
                 return NotFound();
             }
-            
+
+            // Validate new password
+            if (string.IsNullOrWhiteSpace(newPassword))
+            {
+                TempData["Error"] = "Password cannot be empty.";
+                return RedirectToAction("ShowUser", new { id });
+            }
+
+            // Strong password validation
+            var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
+            if (!passwordRegex.IsMatch(newPassword))
+            {
+                TempData["Error"] =
+                    "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+                return RedirectToAction("ShowUser", new { id });
+            }
+
+            // Check if passwords match
+            if (newPassword != confirmPassword)
+            {
+                TempData["Error"] = "Passwords do not match.";
+                return RedirectToAction("ShowUser", new { id });
+            }
+
             // Generate and save the reset token
             var token = Guid.NewGuid().ToString();
             user.ResetToken = token;
             user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
             await _userDAL.UpdateUserAsync(user);
+
             // Generate reset link
             var resetLink = Url.Action(
                 "ResetPassword",
@@ -287,16 +355,17 @@ namespace test.Controllers
                 new { token = token, email = user.Email, isChangePassword = true },
                 Request.Scheme);
 
-            // Send email
+            // Send reset email
             var emailBody = $@"
-    <h1>Password Change Request</h1>
-    <p>Click the link below to confirm and change your password:</p>
-    <a href='{resetLink}'>Change Password</a>
-    <p>If you did not request this, please ignore this email.</p>";
+        <h1>Password Change Request</h1>
+        <p>Click the link below to confirm and change your password:</p>
+        <a href='{resetLink}'>Change Password</a>
+        <p>If you did not request this, please ignore this email.</p>";
             await _emailService.SendEmailAsync(user.Email, "Confirm Password Change", emailBody);
 
             TempData["Message"] = "A password change link has been sent to your email.";
             Console.WriteLine($"Generated Reset Link: {resetLink}");
+
             return RedirectToAction("ShowUser", new { id });
         }
 
@@ -525,7 +594,7 @@ namespace test.Controllers
 
             return View(user);
         }
-        
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
