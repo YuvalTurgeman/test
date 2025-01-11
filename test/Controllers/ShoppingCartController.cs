@@ -22,34 +22,34 @@ namespace test.Controllers
     [Authorize(Roles = "Customer")]
     public class ShoppingCartController : BaseController
     {
-        private readonly ShoppingCartDAL _cartDAL;
-        private readonly CartItemDAL _cartItemDAL;
-        private readonly BookDAL _bookDAL;
+        private readonly ShoppingCartDAL _cartDal;
+        private readonly CartItemDAL _cartItemDal;
+        private readonly BookDAL _bookDal;
         private readonly PaymentService _paymentService;
-        private readonly BorrowDAL _borrowDAL;
-        private readonly WaitingListDAL _waitingListDAL;
-        private readonly PurchaseDAL _purchaseDAL;
+        private readonly BorrowDAL _borrowDal;
+        private readonly WaitingListDAL _waitingListDal;
+        private readonly PurchaseDAL _purchaseDal;
         private readonly EmailService _emailService;
 
         private const string TempPurchaseKey = "TempPurchaseInfo";
 
         public ShoppingCartController(
-            ShoppingCartDAL cartDAL,
-            CartItemDAL cartItemDAL,
-            BookDAL bookDAL,
+            ShoppingCartDAL cartDal,
+            CartItemDAL cartItemDal,
+            BookDAL bookDal,
             PaymentService paymentService,
-            BorrowDAL borrowDAL,
-            WaitingListDAL waitingListDAL,
-            PurchaseDAL purchaseDAL,
+            BorrowDAL borrowDal,
+            WaitingListDAL waitingListDal,
+            PurchaseDAL purchaseDal,
             EmailService emailService)
         {
-            _cartDAL = cartDAL;
-            _cartItemDAL = cartItemDAL;
-            _bookDAL = bookDAL;
+            _cartDal = cartDal;
+            _cartItemDal = cartItemDal;
+            _bookDal = bookDal;
             _paymentService = paymentService;
-            _borrowDAL = borrowDAL;
-            _waitingListDAL = waitingListDAL;
-            _purchaseDAL = purchaseDAL;
+            _borrowDal = borrowDal;
+            _waitingListDal = waitingListDal;
+            _purchaseDal = purchaseDal;
             _emailService = emailService;
         }
 
@@ -57,26 +57,27 @@ namespace test.Controllers
         public async Task<IActionResult> Index()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-            var cart = await _cartDAL.GetOrCreateCartAsync(userId);
+            var cart = await _cartDal.GetOrCreateCartAsync(userId);
             return View(cart);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Customer")]
-        public async Task<IActionResult> BuyNow(int bookId)
+public async Task<IActionResult> BuyNow(int bookId)
+{
+    try
+    {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+        var book = await _bookDal.GetBookByIdAsync(bookId);
+
+        if (book == null)
         {
-            try
-            {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var book = await _bookDAL.GetBookByIdAsync(bookId);
+            TempData["Error"] = "Book not found.";
+            return RedirectToAction("UserHomePage", "Books");
+        }
 
-                if (book == null)
-                {
-                    TempData["Error"] = "Book not found.";
-                    return RedirectToAction("UserHomePage", "Books");
-                }
-
+        
                 var finalPrice = await _bookDAL.GetEffectivePurchasePriceAsync(bookId); 
                     
                 var purchaseInfo = new TempPurchaseInfo
@@ -88,11 +89,16 @@ namespace test.Controllers
                     Price = finalPrice?? 0m
                 };
 
-                TempData[TempPurchaseKey] = JsonSerializer.Serialize(purchaseInfo);
+        TempData[TempPurchaseKey] = JsonSerializer.Serialize(purchaseInfo);
 
-                var lineItems = new List<SessionLineItemOptions>
+        var lineItems = new List<SessionLineItemOptions>
+        {
+            new SessionLineItemOptions
+            {
+                PriceData = new SessionLineItemPriceDataOptions
                 {
-                    new SessionLineItemOptions
+                    Currency = "usd",
+                    ProductData = new SessionLineItemPriceDataProductDataOptions
                     {
                         PriceData = new SessionLineItemPriceDataOptions
                         {
@@ -107,117 +113,119 @@ namespace test.Controllers
                     }
                 };
 
-                var sessionUrl = await _paymentService.CreateCheckoutSessionAsync(
-                    lineItems,
-                    Url.Action("Success", "ShoppingCart", null, Request.Scheme),
-                    Url.Action("Cancel", "ShoppingCart", null, Request.Scheme)
-                );
 
-                return Redirect(sessionUrl);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error in BuyNow: {ex.Message}");
-                TempData["Error"] = "Failed to initiate the purchase.";
-                return RedirectToAction("UserHomePage", "Books");
-            }
-        }
+        var sessionUrl = await _paymentService.CreateCheckoutSessionAsync(
+            lineItems,
+            Url.Action("Success", "ShoppingCart", null, Request.Scheme),
+            Url.Action("Cancel", "ShoppingCart", null, Request.Scheme)
+        );
 
-            [HttpPost]
-    [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Customer")]
-    public async Task<IActionResult> AddToCart(int bookId, bool isBorrow)
+        return Redirect(sessionUrl);
+    }
+    catch (Exception ex)
     {
-        try
+        Console.WriteLine($"Error in BuyNow: {ex.Message}");
+        TempData["Error"] = "Failed to initiate the purchase.";
+        return RedirectToAction("UserHomePage", "Books");
+    }
+}
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+[Authorize(Roles = "Customer")]
+public async Task<IActionResult> AddToCart(int bookId, bool isBorrow)
+{
+    try
+    {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+        var book = await _bookDal.GetBookByIdAsync(bookId);
+
+        if (book == null)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-            var book = await _bookDAL.GetBookByIdAsync(bookId);
-
-            if (book == null)
-            {
-                TempData["Error"] = "Book not found.";
-                return RedirectToAction("Index", "Book");
-            }
-
-            if (isBorrow)
-            {
-                // Check if user already has this book borrowed
-                if (await _borrowDAL.HasUserBorrowedBookAsync(userId, bookId))
-                {
-                    TempData["Error"] = "You already have this book borrowed.";
-                    return RedirectToAction("MyBorrows", "Borrow");
-                }
-
-                // Check if user has reached borrow limit
-                if (await _borrowDAL.HasReachedBorrowLimitAsync(userId))
-                {
-                    TempData["Error"] = "You can only borrow up to 3 different books at a time.";
-                    return RedirectToAction("MyBorrows", "Borrow");
-                }
-
-                var availableCopies = await _bookDAL.GetAvailableCopiesAsync(bookId);
-                if (availableCopies <= 0)
-                {
-                    await _waitingListDAL.AddToWaitingListAsync(userId, bookId);
-                    TempData["Success"] = "Added to waiting list as the book is currently unavailable.";
-                    return RedirectToAction("Index", "Book");
-                }
-            }
-
-            var cart = await _cartDAL.GetOrCreateCartAsync(userId);
-
-            // Check for active discount
-            var activeDiscount = book.Discounts
-                .FirstOrDefault(d => d.IsActive && 
-                                   d.StartDate <= DateTime.UtcNow && 
-                                   d.EndDate >= DateTime.UtcNow);
-
-            // Calculate the final price with discount if applicable
-            decimal finalPrice = isBorrow ? (book.BorrowPrice ?? 0) : (book.PurchasePrice ?? 0);
-            if (activeDiscount != null)
-            {
-                finalPrice -= (finalPrice * activeDiscount.DiscountAmount / 100);
-            }
-
-            var existingItem = cart.CartItems.FirstOrDefault(i => i.BookId == bookId);
-            if (existingItem != null)
-            {
-                if (isBorrow)
-                {
-                    existingItem.Quantity = 1; // Force quantity to 1 for borrow items
-                }
-
-                existingItem.IsBorrow = isBorrow;
-                existingItem.FinalPrice = finalPrice;
-                existingItem.DiscountId = activeDiscount?.Id;
-                await _cartItemDAL.UpdateAsync(existingItem);
-                TempData["Success"] = $"Cart updated for {(isBorrow ? "borrowing" : "purchasing")}.";
-            }
-            else
-            {
-                var cartItem = new CartItemModel
-                {
-                    BookId = bookId,
-                    ShoppingCartId = cart.Id,
-                    IsBorrow = isBorrow,
-                    DateAdded = DateTime.UtcNow,
-                    FinalPrice = finalPrice,
-                    DiscountId = activeDiscount?.Id,
-                    Quantity = 1 // Default quantity, force 1 for borrow
-                };
-                await _cartItemDAL.AddItemAsync(cartItem);
-                TempData["Success"] = $"Book added to cart for {(isBorrow ? "borrowing" : "purchasing")}.";
-            }
-
-            return RedirectToAction("Index");
-        }
-        catch (Exception ex)
-        {
-            TempData["Error"] = ex.Message;
+            TempData["Error"] = "Book not found.";
             return RedirectToAction("Index", "Book");
         }
-    }
 
+        if (isBorrow)
+        {
+            if (await _borrowDal.HasUserBorrowedBookAsync(userId, bookId))
+            {
+                TempData["Error"] = "You already have this book borrowed.";
+                return RedirectToAction("MyBorrows", "Borrow");
+            }
+
+            if (await _borrowDal.HasReachedBorrowLimitAsync(userId))
+            {
+                TempData["Error"] = "You can only borrow up to 3 different books at a time.";
+                return RedirectToAction("MyBorrows", "Borrow");
+            }
+
+            var availableCopies = await _bookDal.GetAvailableCopiesAsync(bookId);
+            if (availableCopies <= 0)
+            {
+                await _waitingListDal.AddToWaitingListAsync(userId, bookId);
+                TempData["Success"] = "Added to waiting list as the book is currently unavailable.";
+                return RedirectToAction("Index", "Book");
+            }
+        }
+
+        var cart = await _cartDal.GetOrCreateCartAsync(userId);
+
+        // Get the effective prices based on any active discounts
+        decimal finalPrice;
+        if (isBorrow)
+        {
+            finalPrice = await _bookDal.GetEffectiveBorrowPriceAsync(bookId) ?? 0m;
+        }
+        else
+        {
+            finalPrice = await _bookDal.GetEffectivePurchasePriceAsync(bookId) ?? 0m;
+        }
+
+        // Get active discount if any
+        var activeDiscount = book.Discounts
+            .FirstOrDefault(d => d.IsActive && 
+                               d.StartDate <= DateTime.UtcNow && 
+                               d.EndDate >= DateTime.UtcNow);
+
+        var existingItem = cart.CartItems.FirstOrDefault(i => i.BookId == bookId);
+        if (existingItem != null)
+        {
+            if (isBorrow)
+            {
+                existingItem.Quantity = 1; // Force quantity to 1 for borrow items
+            }
+
+            existingItem.IsBorrow = isBorrow;
+            existingItem.FinalPrice = finalPrice;
+            existingItem.DiscountId = activeDiscount?.Id;
+            await _cartItemDal.UpdateAsync(existingItem);
+            TempData["Success"] = $"Cart updated for {(isBorrow ? "borrowing" : "purchasing")}.";
+        }
+        else
+        {
+            var cartItem = new CartItemModel
+            {
+                BookId = bookId,
+                ShoppingCartId = cart.Id,
+                IsBorrow = isBorrow,
+                DateAdded = DateTime.UtcNow,
+                FinalPrice = finalPrice,
+                DiscountId = activeDiscount?.Id,
+                Quantity = 1 // Default quantity, force 1 for borrow
+            };
+            await _cartItemDal.AddItemAsync(cartItem);
+            TempData["Success"] = $"Book added to cart for {(isBorrow ? "borrowing" : "purchasing")}.";
+        }
+
+        return RedirectToAction("Index");
+    }
+    catch (Exception ex)
+    {
+        TempData["Error"] = ex.Message;
+        return RedirectToAction("Index", "Book");
+    }
+}
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Customer")]
@@ -226,7 +234,7 @@ namespace test.Controllers
             try
             {
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var cart = await _cartDAL.GetByUserIdAsync(userId);
+                var cart = await _cartDal.GetByUserIdAsync(userId);
 
                 if (cart == null)
                 {
@@ -234,21 +242,30 @@ namespace test.Controllers
                     return RedirectToAction("Index");
                 }
 
-                var cartItem = cart.CartItems.FirstOrDefault(i => i.Id == id);
+                // Get the cart item using CartItemDAL
+                var cartItem = await _cartItemDal.GetByIdAsync(id);
                 if (cartItem == null)
                 {
                     TempData["Error"] = "Item not found in cart.";
                     return RedirectToAction("Index");
                 }
 
-                await _cartDAL.RemoveItemFromCartAsync(cart.Id, id);
+                // Verify the item belongs to the user's cart
+                if (cartItem.ShoppingCartId != cart.Id)
+                {
+                    TempData["Error"] = "Unauthorized access to cart item.";
+                    return RedirectToAction("Index");
+                }
+
+                // Delete the cart item using CartItemDAL
+                await _cartItemDal.DeleteAsync(id);
 
                 TempData["Success"] = "Item removed from cart.";
                 return RedirectToAction("Index");
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Failed to remove item from cart.";
+                TempData["Error"] = $"Failed to remove item from cart: {ex.Message}";
                 return RedirectToAction("Index");
             }
         }
@@ -261,7 +278,7 @@ namespace test.Controllers
         try
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-            var cart = await _cartDAL.GetByUserIdAsync(userId);
+            var cart = await _cartDal.GetByUserIdAsync(userId);
 
             if (cart == null)
             {
@@ -273,13 +290,13 @@ namespace test.Controllers
             {
                 if (updates.TryGetValue(item.Id, out var update))
                 {
-                    var book = await _bookDAL.GetBookByIdAsync(item.BookId);
+                    var book = await _bookDal.GetBookByIdAsync(item.BookId);
 
                     // Check if switching to borrow
                     if (update.IsBorrow && !item.IsBorrow)
                     {
                         // Check book availability
-                        var availableCopies = await _bookDAL.GetAvailableCopiesAsync(item.BookId);
+                        var availableCopies = await _bookDal.GetAvailableCopiesAsync(item.BookId);
                         if (availableCopies <= 0)
                         {
                             // Redirect to waiting list
@@ -289,14 +306,14 @@ namespace test.Controllers
                         }
 
                         // Check if user already has this book borrowed
-                        if (await _borrowDAL.HasUserBorrowedBookAsync(userId, item.BookId))
+                        if (await _borrowDal.HasUserBorrowedBookAsync(userId, item.BookId))
                         {
                             TempData["Error"] = "You already have this book borrowed.";
                             return RedirectToAction("Index");
                         }
 
                         // Check borrow limit
-                        var distinctBorrowedBooks = await _borrowDAL.GetDistinctBorrowedBooksCountAsync(userId);
+                        var distinctBorrowedBooks = await _borrowDal.GetDistinctBorrowedBooksCountAsync(userId);
                         var distinctBorrowsInCart = cart.CartItems
                             .Where(i => i.IsBorrow && i.Id != item.Id)
                             .Select(i => i.BookId)
@@ -321,7 +338,7 @@ namespace test.Controllers
                     }
                     item.FinalPrice = update.IsBorrow ? book.BorrowPrice : book.PurchasePrice;
 
-                    await _cartItemDAL.UpdateAsync(item);
+                    await _cartItemDal.UpdateAsync(item);
                 }
             }
 
@@ -343,7 +360,7 @@ namespace test.Controllers
             try
             {
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-                var cart = await _cartDAL.GetByUserIdAsync(userId);
+                var cart = await _cartDal.GetByUserIdAsync(userId);
 
                 if (cart == null || !cart.CartItems.Any())
                 {
@@ -353,7 +370,7 @@ namespace test.Controllers
                 // Validate borrow limits
                 if (cart.CartItems.Any(i => i.IsBorrow))
                 {
-                    var distinctBorrowedBooks = await _borrowDAL.GetDistinctBorrowedBooksCountAsync(userId);
+                    var distinctBorrowedBooks = await _borrowDal.GetDistinctBorrowedBooksCountAsync(userId);
                     var distinctBorrowsInCart = cart.CartItems
                         .Where(i => i.IsBorrow)
                         .Select(i => i.BookId)
@@ -369,7 +386,7 @@ namespace test.Controllers
                 var lineItems = new List<SessionLineItemOptions>();
                 foreach (var item in cart.CartItems)
                 {
-                    var book = await _bookDAL.GetBookByIdAsync(item.BookId);
+                    var book = await _bookDal.GetBookByIdAsync(item.BookId);
                     lineItems.Add(new SessionLineItemOptions
                     {
                         PriceData = new SessionLineItemPriceDataOptions
@@ -416,7 +433,7 @@ namespace test.Controllers
                     var purchaseInfo = JsonSerializer.Deserialize<TempPurchaseInfo>(tempPurchaseJson);
                     if (purchaseInfo != null && purchaseInfo.IsBuyNow)
                     {
-                        var book = await _bookDAL.GetBookByIdAsync(purchaseInfo.BookId);
+                        var book = await _bookDal.GetBookByIdAsync(purchaseInfo.BookId);
 
                         if (book != null)
                         {
@@ -430,26 +447,26 @@ namespace test.Controllers
                                 IsHidden = false
                             };
 
-                            var createdPurchase = await _purchaseDAL.CreatePurchaseAsync(purchase);
+                            var createdPurchase = await _purchaseDal.CreatePurchaseAsync(purchase);
                             purchasedItems.Add((book.Title, purchaseInfo.Price));
                         }
                     }
                 }
                 else
                 {
-                    var cart = await _cartDAL.GetByUserIdAsync(userId);
+                    var cart = await _cartDal.GetByUserIdAsync(userId);
                     if (cart?.CartItems?.Any() == true)
                     {
                         foreach (var item in cart.CartItems)
                         {
                             try
                             {
-                                var book = await _bookDAL.GetBookByIdAsync(item.BookId);
+                                var book = await _bookDal.GetBookByIdAsync(item.BookId);
 
                                 if (item.IsBorrow)
                                 {
                                     // Verify borrow limit hasn't been exceeded
-                                    var currentBorrows = await _borrowDAL.GetDistinctBorrowedBooksCountAsync(userId);
+                                    var currentBorrows = await _borrowDal.GetDistinctBorrowedBooksCountAsync(userId);
                                     if (currentBorrows >= 3)
                                     {
                                         throw new InvalidOperationException("Borrow limit exceeded");
@@ -466,10 +483,10 @@ namespace test.Controllers
                                         IsReturned = false
                                     };
 
-                                    var createdBorrow = await _borrowDAL.CreateBorrowAsync(borrow);
+                                    var createdBorrow = await _borrowDal.CreateBorrowAsync(borrow);
 
                                     // Update available copies
-                                    await _bookDAL.UpdateAvailableCopiesAsync(item.BookId);
+                                    await _bookDal.UpdateAvailableCopiesAsync(item.BookId);
 
                                     borrowedItems.Add((book.Title, item.FinalPrice ?? 0, borrow.EndDate));
                                 }
@@ -488,7 +505,7 @@ namespace test.Controllers
                                             IsHidden = false
                                         };
 
-                                        var createdPurchase = await _purchaseDAL.CreatePurchaseAsync(purchase);
+                                        var createdPurchase = await _purchaseDal.CreatePurchaseAsync(purchase);
                                         purchasedItems.Add((book.Title, item.FinalPrice ?? 0));
                                     }
                                 }
@@ -501,7 +518,7 @@ namespace test.Controllers
                         }
 
                         // Clear the cart after successful processing
-                        await _cartDAL.ClearCartAsync(userId);
+                        await _cartDal.ClearCartAsync(userId);
                     }
                 }
 

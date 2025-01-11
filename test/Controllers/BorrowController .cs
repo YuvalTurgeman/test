@@ -257,7 +257,6 @@ namespace test.Controllers
                             var emailBody = $@"
                                 <h2>Good News!</h2>
                                 <p>The book '{borrow.Book.Title}' is now available for borrowing.</p>
-                                <p>You are position {waitingUser.Position} in line.</p>
                                 <p>Please log in to your account to borrow the book.</p>
                                 <p>Note: The first person to borrow the book will get it, so act quickly!</p>";
 

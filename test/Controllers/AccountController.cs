@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authentication;
@@ -7,9 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using test.Data;
 using test.Models;
-using test.Enums;
 using test.Services;
-using test.ViewModels;
 
 namespace test.Controllers
 {
@@ -18,12 +15,11 @@ namespace test.Controllers
         private readonly UserDAL _userDAL;
         private readonly EmailService _emailService;
 
-        public AccountController(UserDAL userDAL, EmailService emailService)
+        public AccountController(UserDAL userDal, EmailService emailService)
         {
-            _userDAL = userDAL;
+            _userDAL = userDal;
             _emailService = emailService;
         }
-
 
         // GET: Account/Login
         public IActionResult Login(string returnUrl = null)
@@ -43,7 +39,6 @@ namespace test.Controllers
                 return View();
             }
 
-            // Create claims for authentication
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -64,12 +59,8 @@ namespace test.Controllers
                 new ClaimsPrincipal(claimsIdentity),
                 authProperties);
 
-            // Explicitly store UserPermission in session
             HttpContext.Session.SetString("UserPermission", user.Permission.ToString());
             HttpContext.Session.SetInt32("UserId", user.Id);
-
-            // Debugging: Ensure UserPermission is set
-            Console.WriteLine($"UserPermission in Session: {HttpContext.Session.GetString("UserPermission")}");
 
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
@@ -79,14 +70,12 @@ namespace test.Controllers
             return RedirectToAction("UserHomePage", "Books");
         }
 
-
-        // GET: Account/Register
         [HttpGet]
-        // [Authorize(Roles = "Guest")]
         public IActionResult Register()
         {
             return View();
         }
+
 
         //POST: Account/Register
         [HttpPost]
@@ -110,7 +99,6 @@ namespace test.Controllers
                     return View(user);
                 }
 
-                // Password validation
                 var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
                 if (!passwordRegex.IsMatch(user.Password))
                 {
@@ -125,16 +113,13 @@ namespace test.Controllers
                     return View(user);
                 }
 
-                var isEmailUnique = await _userDAL.IsEmailUniqueAsync(user.Email);
-                if (!isEmailUnique)
+                if (!await _userDAL.IsEmailUniqueAsync(user.Email))
                 {
                     ViewData["ErrorMessage"] = "This email is already registered.";
                     return View(user);
                 }
 
-                // Hash password and set default permission
                 user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
-
                 user.Permission = test.Enums.UserPermission.Customer;
 
                 var createdUser = await _userDAL.CreateUserAsync(user);
@@ -172,7 +157,6 @@ namespace test.Controllers
             }
         }
 
-        // GET: Account/ShowUser
         public async Task<IActionResult> ShowUser(int? id)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
@@ -192,7 +176,6 @@ namespace test.Controllers
             return View(user);
         }
 
-        // POST: Account/EditUsername
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditUsername(int id, string newUsername)
@@ -222,7 +205,6 @@ namespace test.Controllers
             return RedirectToAction("ShowUser", new { id });
         }
 
-        // POST: Account/EditEmail
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditEmail(int id, string newEmail)
@@ -259,128 +241,180 @@ namespace test.Controllers
         }
 
 
-        //     [HttpPost]
-        //     [ValidateAntiForgeryToken] 
-        //     public async Task<IActionResult> EditPassword(int id, string newPassword, string confirmPassword)
-        //     {
-        //         var userId = HttpContext.Session.GetInt32("UserId");
-        //         if (!userId.HasValue || userId.Value != id)
-        //         {
-        //             return RedirectToAction("Login");
-        //         }
-        //         
-        //         var user = await _userDAL.GetUserByIdAsync(id);
-        //         if (user == null)
-        //         {
-        //             return NotFound();
-        //         }
-        //         
-        //         // Generate and save the reset token
-        //         var token = Guid.NewGuid().ToString();
-        //         user.ResetToken = token;
-        //         user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
-        //         await _userDAL.UpdateUserAsync(user);
-        //         // Generate reset link
-        //         var resetLink = Url.Action(
-        //             "ResetPassword",
-        //             "Account",
-        //             new { token = token, email = user.Email, isChangePassword = true },
-        //             Request.Scheme);
-        //
-        //         // Send email
-        //         var emailBody = $@"
-        // <h1>Password Change Request</h1>
-        // <p>Click the link below to confirm and change your password:</p>
-        // <a href='{resetLink}'>Change Password</a>
-        // <p>If you did not request this, please ignore this email.</p>";
-        //         await _emailService.SendEmailAsync(user.Email, "Confirm Password Change", emailBody);
-        //
-        //         TempData["Message"] = "A password change link has been sent to your email.";
-        //         Console.WriteLine($"Generated Reset Link: {resetLink}");
-        //         return RedirectToAction("ShowUser", new { id });
-        //     }
+
+
+//         [HttpPost]
+//         [ValidateAntiForgeryToken]
+//         [Authorize] // Ensure the user is authenticated
+//         public async Task<IActionResult> EditPassword(int id, string newPassword, string confirmPassword)
+//         {
+
+//             // Verify the logged-in user's ID matches the requested ID
+//             var userId = HttpContext.Session.GetInt32("UserId");
+//             if (!userId.HasValue || userId.Value != id)
+//             {
+//                 return RedirectToAction("Login");
+//             }
+
+
+//             // Retrieve the user from the database
+//             var user = await _userDAL.GetUserByIdAsync(id);
+
+//             if (user == null)
+//             {
+//                 return NotFound();
+//             }
+
+// <<<<<<< Diana2.0
+//             var token = Guid.NewGuid().ToString();
+//             user.ResetToken = token;
+//             user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
+//             await _userDal.UpdateUserAsync(user);
+
+//             // First log the user out
+//             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+//             HttpContext.Session.Clear();
+
+// =======
+//             // Validate new password
+//             if (string.IsNullOrWhiteSpace(newPassword))
+//             {
+//                 TempData["Error"] = "Password cannot be empty.";
+//                 return RedirectToAction("ShowUser", new { id });
+//             }
+
+//             // Strong password validation
+//             var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
+//             if (!passwordRegex.IsMatch(newPassword))
+//             {
+//                 TempData["Error"] =
+//                     "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+//                 return RedirectToAction("ShowUser", new { id });
+//             }
+
+//             // Check if passwords match
+//             if (newPassword != confirmPassword)
+//             {
+//                 TempData["Error"] = "Passwords do not match.";
+//                 return RedirectToAction("ShowUser", new { id });
+//             }
+
+//             // Generate and save the reset token
+//             var token = Guid.NewGuid().ToString();
+//             user.ResetToken = token;
+//             user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
+//             await _userDAL.UpdateUserAsync(user);
+
+//             // Generate reset link
+// >>>>>>> main
+//             var resetLink = Url.Action(
+//                 "ResetPassword",
+//                 "Account",
+//                 new { token = token, email = user.Email, isChangePassword = true },
+//                 Request.Scheme);
+
+// <<<<<<< Diana2.0
+//             var emailBody = $@"
+//                 <h1>Password Change Request</h1>
+//                 <p>Click the link below to confirm and change your password:</p>
+//                 <a href='{resetLink}'>Change Password</a>
+//                 <p>If you did not request this, please ignore this email.</p>";
+//             await _emailService.SendEmailAsync(user.Email, "Confirm Password Change", emailBody);
+
+//             TempData["Message"] = "A password change link has been sent to your email. Please log in again after changing your password.";
+//             return RedirectToAction("Login");
+// =======
+//             // Send reset email
+//             var emailBody = $@"
+//         <h1>Password Change Request</h1>
+//         <p>Click the link below to confirm and change your password:</p>
+//         <a href='{resetLink}'>Change Password</a>
+//         <p>If you did not request this, please ignore this email.</p>";
+//             await _emailService.SendEmailAsync(user.Email, "Confirm Password Change", emailBody);
+
+//             TempData["Message"] = "A password change link has been sent to your email.";
+//             Console.WriteLine($"Generated Reset Link: {resetLink}");
+
+//             return RedirectToAction("ShowUser", new { id });
+// >>>>>>> main
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize] // Ensure the user is authenticated
-        public async Task<IActionResult> EditPassword(int id, string newPassword, string confirmPassword)
-        {
-            // Verify the logged-in user's ID matches the requested ID
-            var userId = HttpContext.Session.GetInt32("UserId");
-            if (!userId.HasValue || userId.Value != id)
-            {
-                return RedirectToAction("Login");
-            }
+[ValidateAntiForgeryToken]
+[Authorize] // Ensure the user is authenticated
+public async Task<IActionResult> EditPassword(int id, string newPassword, string confirmPassword)
+{
+    // Verify the logged-in user's ID matches the requested ID
+    var userId = HttpContext.Session.GetInt32("UserId");
+    if (!userId.HasValue || userId.Value != id)
+    {
+        return RedirectToAction("Login");
+    }
 
-            // Retrieve the user from the database
-            var user = await _userDAL.GetUserByIdAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
+    // Retrieve the user from the database
+    var user = await _userDAL.GetUserByIdAsync(id);
+    if (user == null)
+    {
+        return NotFound();
+    }
 
-            // Validate new password
-            if (string.IsNullOrWhiteSpace(newPassword))
-            {
-                TempData["Error"] = "Password cannot be empty.";
-                return RedirectToAction("ShowUser", new { id });
-            }
+    // Validate new password
+    if (string.IsNullOrWhiteSpace(newPassword))
+    {
+        TempData["Error"] = "Password cannot be empty.";
+        return RedirectToAction("ShowUser", new { id });
+    }
 
-            // Strong password validation
-            var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
-            if (!passwordRegex.IsMatch(newPassword))
-            {
-                TempData["Error"] =
-                    "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
-                return RedirectToAction("ShowUser", new { id });
-            }
+    // Strong password validation
+    var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
+    if (!passwordRegex.IsMatch(newPassword))
+    {
+        TempData["Error"] = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+        return RedirectToAction("ShowUser", new { id });
+    }
 
-            // Check if passwords match
-            if (newPassword != confirmPassword)
-            {
-                TempData["Error"] = "Passwords do not match.";
-                return RedirectToAction("ShowUser", new { id });
-            }
+    // Check if passwords match
+    if (newPassword != confirmPassword)
+    {
+        TempData["Error"] = "Passwords do not match.";
+        return RedirectToAction("ShowUser", new { id });
+    }
 
-            // Generate and save the reset token
-            var token = Guid.NewGuid().ToString();
-            user.ResetToken = token;
-            user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
-            await _userDAL.UpdateUserAsync(user);
+    // Generate and save the reset token
+    var token = Guid.NewGuid().ToString();
+    user.ResetToken = token;
+    user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
+    await _userDAL.UpdateUserAsync(user);
 
-            // Generate reset link
-            var resetLink = Url.Action(
-                "ResetPassword",
-                "Account",
-                new { token = token, email = user.Email, isChangePassword = true },
-                Request.Scheme);
+    // First log the user out
+    await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    HttpContext.Session.Clear();
 
-            // Send reset email
-            var emailBody = $@"
+    // Generate reset link
+    var resetLink = Url.Action(
+        "ResetPassword",
+        "Account",
+        new { token = token, email = user.Email, isChangePassword = true },
+        Request.Scheme);
+
+    // Send reset email
+    var emailBody = $@"
         <h1>Password Change Request</h1>
         <p>Click the link below to confirm and change your password:</p>
         <a href='{resetLink}'>Change Password</a>
         <p>If you did not request this, please ignore this email.</p>";
-            await _emailService.SendEmailAsync(user.Email, "Confirm Password Change", emailBody);
+    await _emailService.SendEmailAsync(user.Email, "Confirm Password Change", emailBody);
 
-            TempData["Message"] = "A password change link has been sent to your email.";
-            Console.WriteLine($"Generated Reset Link: {resetLink}");
+    TempData["Message"] = "A password change link has been sent to your email. Please log in again after changing your password.";
+    Console.WriteLine($"Generated Reset Link: {resetLink}");
 
-            return RedirectToAction("ShowUser", new { id });
-        }
+    return RedirectToAction("Login");
+}
 
 
         public async Task<IActionResult> Logout()
         {
-            // Clear authentication cookie
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-            // Clear session
             HttpContext.Session.Clear();
-
-            // Debugging: Ensure session is cleared
-            Console.WriteLine("Session cleared on logout.");
-
             return RedirectToAction("Login", "Account");
         }
 
@@ -396,30 +430,26 @@ namespace test.Controllers
             var user = await _userDAL.GetUserByEmailAsync(email);
             if (user == null)
             {
-                // Don't disclose that the email doesn't exist
                 TempData["Message"] = "If the email exists in our system, a reset link has been sent.";
                 return RedirectToAction("ForgotPassword");
             }
 
-            // Generate and save the reset token
             var token = Guid.NewGuid().ToString();
             user.ResetToken = token;
             user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
             await _userDAL.UpdateUserAsync(user);
 
-            // Generate reset link
             var resetLink = Url.Action(
                 "ResetPassword",
                 "Account",
                 new { token = token, email = user.Email },
                 Request.Scheme);
 
-            // Send email
             var emailBody = $@"
-        <h1>Password Reset Request</h1>
-        <p>Click the link below to reset your password:</p>
-        <a href='{resetLink}'>Reset Password</a>
-        <p>If you did not request this, please ignore this email.</p>";
+                <h1>Password Reset Request</h1>
+                <p>Click the link below to reset your password:</p>
+                <a href='{resetLink}'>Reset Password</a>
+                <p>If you did not request this, please ignore this email.</p>";
             await _emailService.SendEmailAsync(user.Email, "Reset Your Password", emailBody);
 
             TempData["Message"] = "If the email exists in our system, a reset link has been sent.";
@@ -436,76 +466,147 @@ namespace test.Controllers
                 return RedirectToAction("Login");
             }
 
+            var model = new ResetPassword
+            {
+                Token = token,
+                Email = email,
+                IsChangePassword = isChangePassword
+            };
+
             ViewBag.Title = isChangePassword ? "Change Password" : "Reset Password";
             ViewBag.Message = isChangePassword
                 ? "Enter your new password to complete the change."
                 : "Enter your new password to reset your account.";
-            ViewBag.IsChangePassword = isChangePassword;
-            Console.WriteLine($"isChangePassword: {isChangePassword}");
-            ViewData["Token"] = token;
-            ViewData["Email"] = email;
-            ViewData["IsChangePassword"] = isChangePassword;
 
-
-            return View();
+            return View(model);
         }
 
+// <<<<<<< Diana2.0
+//         [HttpPost]
+//         [ValidateAntiForgeryToken]
+//         public async Task<IActionResult> ResetPassword(ResetPassword model)
+// =======
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ResetPassword(string token, string email, string newPassword,
-            string confirmPassword, bool isChangePassword = false)
-        {
-            // Retrieve the user based on the provided email
-            var user = await _userDAL.GetUserByEmailAsync(email);
-            if (user == null || user.ResetToken != token || user.ResetTokenExpires < DateTime.UtcNow)
-            {
-                TempData["Error"] = "Invalid or expired token.";
-                return RedirectToAction("Login");
-            }
+//         [HttpPost]
+//         [ValidateAntiForgeryToken]
+//         public async Task<IActionResult> ResetPassword(string token, string email, string newPassword,
+//             string confirmPassword, bool isChangePassword = false)
+// >>>>>>> main
+//         {
+//             if (!ModelState.IsValid)
+//             {
+//                 return View(model);
+//             }
 
-            // Validate new password
-            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
-            {
-                TempData["Error"] = "Password must be at least 6 characters long.";
-                ViewBag.Title = isChangePassword ? "Change Password" : "Reset Password";
-                ViewBag.Message = isChangePassword
-                    ? "Enter your new password to complete the change."
-                    : "Enter your new password to reset your account.";
-                return View();
-            }
+//             var user = await _userDAL.GetUserByEmailAsync(model.Email);
+//             if (user == null || user.ResetToken != model.Token || user.ResetTokenExpires < DateTime.UtcNow)
+//             {
+//                 TempData["Error"] = "Invalid or expired token.";
+//                 return RedirectToAction("Login");
+//             }
 
-            if (newPassword != confirmPassword)
-            {
-                TempData["Error"] = "Passwords do not match.";
-                ViewBag.Title = isChangePassword ? "Change Password" : "Reset Password";
-                ViewBag.Message = isChangePassword
-                    ? "Enter your new password to complete the change."
-                    : "Enter your new password to reset your account.";
-                return View();
-            }
+//             user.Password = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
+//             user.ResetToken = null;
+//             user.ResetTokenExpires = null;
+// <<<<<<< Diana2.0
+//             await _userDAL.UpdateUserAsync(user);
 
-            // Update the password and clear the reset token
-            user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
-            user.ResetToken = null;
-            user.ResetTokenExpires = null;
-            await _userDAL.UpdateUserAsync(user);
+//             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+//             HttpContext.Session.Clear();
+// =======
+//             await _userDAL.UpdateUserAsync(user);
 
-            // Notify success and redirect to the login page
-            TempData["Success"] = isChangePassword
-                ? "Your password has been successfully changed."
-                : "Your password has been successfully reset.";
+//             // Notify success and redirect to the login page
+//             TempData["Success"] = isChangePassword
+//                 ? "Your password has been successfully changed."
+//                 : "Your password has been successfully reset.";
 
-            if (isChangePassword)
-            {
-                return RedirectToAction("UserHomePage", "Books");
-            }
-            else
-            {
-                return RedirectToAction("Login");
-            }
+//             if (isChangePassword)
+//             {
+//                 return RedirectToAction("UserHomePage", "Books");
+//             }
+//             else
+//             {
+//                 return RedirectToAction("Login");
+//             }
+//         }
+// >>>>>>> main
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> ResetPassword(string token, string email, string newPassword, string confirmPassword, bool isChangePassword = false)
+{
+    if (!ModelState.IsValid)
+    {
+        TempData["Error"] = "Invalid input. Please check your form and try again.";
+        return View();
+    }
+
+    // Retrieve user by email
+    var user = await _userDAL.GetUserByEmailAsync(email);
+    if (user == null || user.ResetToken != token || user.ResetTokenExpires < DateTime.UtcNow)
+    {
+        TempData["Error"] = "Invalid or expired token.";
+        return RedirectToAction("Login");
+    }
+
+    // Validate new password
+    if (string.IsNullOrWhiteSpace(newPassword))
+    {
+        TempData["Error"] = "Password cannot be empty.";
+        return View();
+    }
+
+    // Strong password validation
+    var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
+    if (!passwordRegex.IsMatch(newPassword))
+    {
+        TempData["Error"] = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+        return View();
+    }
+
+    // Confirm password match
+    if (newPassword != confirmPassword)
+    {
+        TempData["Error"] = "Passwords do not match.";
+        return View();
+    }
+
+    // Update user's password and clear the reset token
+    user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+    user.ResetToken = null;
+    user.ResetTokenExpires = null;
+    await _userDAL.UpdateUserAsync(user);
+
+    // Clear session and logout if applicable
+    if (!isChangePassword)
+    {
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        HttpContext.Session.Clear();
+    }
+
+    // Notify success and redirect based on context
+    TempData["Success"] = isChangePassword
+        ? "Your password has been successfully changed."
+        : "Your password has been successfully reset.";
+
+    if (isChangePassword)
+    {
+        return RedirectToAction("UserHomePage", "Books");
+    }
+    else
+    {
+        return RedirectToAction("Login");
+    }
+}
+
+
+            TempData["Success"] = model.IsChangePassword
+                ? "Your password has been successfully changed. Please log in again."
+                : "Your password has been successfully reset. You can now log in.";
+
+
+            return RedirectToAction("Login");
         }
-
 
         // Admin Actions
         [HttpGet]
@@ -523,63 +624,135 @@ namespace test.Controllers
             return View();
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> AdminCreateUser(User user, string confirmPassword)
+//         [HttpPost]
+//         [ValidateAntiForgeryToken]
+//         [Authorize(Roles = "Admin")]
+//         public async Task<IActionResult> AdminCreateUser(User user, string confirmPassword)
+//         {
+//             try
+//             {
+// <<<<<<< Diana2.0
+//                 if (!await _userDAL.IsEmailUniqueAsync(user.Email))
+// =======
+//                 if (!ModelState.IsValid)
+//                 {
+//                     var errors = ModelState.Values
+//                         .SelectMany(v => v.Errors)
+//                         .Select(e => e.ErrorMessage);
+//                     ViewData["ErrorMessage"] = string.Join(" ", errors);
+//                     return View(user);
+//                 }
+
+//                 if (string.IsNullOrWhiteSpace(user.Username))
+//                 {
+//                     ViewData["ErrorMessage"] = "Username is required.";
+//                     return View(user);
+//                 }
+
+//                 // Password validation
+//                 var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
+//                 if (!passwordRegex.IsMatch(user.Password))
+//                 {
+//                     ViewData["ErrorMessage"] =
+//                         "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+//                     return View(user);
+//                 }
+
+//                 if (user.Password != confirmPassword)
+//                 {
+//                     ViewData["ErrorMessage"] = "Passwords do not match.";
+//                     return View(user);
+//                 }
+
+//                 if (!await _userDAL.IsEmailUniqueAsync(user.Email))
+// >>>>>>> main
+//                 {
+//                     ViewData["ErrorMessage"] = "This email is already in use.";
+//                     return View(user);
+//                 }
+
+//                 // Hash password and assign role
+//                 user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+// <<<<<<< Diana2.0
+//                 await _userDAL.CreateUserAsync(user);
+// =======
+
+//                 await _userDAL.CreateUserAsync(user);
+
+//                 TempData["Success"] = "User created successfully.";
+// >>>>>>> main
+//                 return RedirectToAction("AdminUserManagement");
+//             }
+//             catch (Exception ex)
+//             {
+//                 ViewData["ErrorMessage"] = "An error occurred during user creation. Please try again.";
+//                 return View(user);
+//             }
+//         }
+  
+  [HttpPost]
+[ValidateAntiForgeryToken]
+[Authorize(Roles = "Admin")]
+public async Task<IActionResult> AdminCreateUser(User user, string confirmPassword)
+{
+    try
+    {
+        // Validate model state
+        if (!ModelState.IsValid)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    var errors = ModelState.Values
-                        .SelectMany(v => v.Errors)
-                        .Select(e => e.ErrorMessage);
-                    ViewData["ErrorMessage"] = string.Join(" ", errors);
-                    return View(user);
-                }
-
-                if (string.IsNullOrWhiteSpace(user.Username))
-                {
-                    ViewData["ErrorMessage"] = "Username is required.";
-                    return View(user);
-                }
-
-                // Password validation
-                var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
-                if (!passwordRegex.IsMatch(user.Password))
-                {
-                    ViewData["ErrorMessage"] =
-                        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
-                    return View(user);
-                }
-
-                if (user.Password != confirmPassword)
-                {
-                    ViewData["ErrorMessage"] = "Passwords do not match.";
-                    return View(user);
-                }
-
-                if (!await _userDAL.IsEmailUniqueAsync(user.Email))
-                {
-                    ViewData["ErrorMessage"] = "This email is already in use.";
-                    return View(user);
-                }
-
-                // Hash password and assign role
-                user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
-
-                await _userDAL.CreateUserAsync(user);
-
-                TempData["Success"] = "User created successfully.";
-                return RedirectToAction("AdminUserManagement");
-            }
-            catch (Exception ex)
-            {
-                ViewData["ErrorMessage"] = "An error occurred during user creation. Please try again.";
-                return View(user);
-            }
+            var errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage);
+            ViewData["ErrorMessage"] = string.Join(" ", errors);
+            return View(user);
         }
+
+        // Validate username
+        if (string.IsNullOrWhiteSpace(user.Username))
+        {
+            ViewData["ErrorMessage"] = "Username is required.";
+            return View(user);
+        }
+
+        // Validate password strength
+        var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
+        if (!passwordRegex.IsMatch(user.Password))
+        {
+            ViewData["ErrorMessage"] = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+            return View(user);
+        }
+
+        // Validate password confirmation
+        if (user.Password != confirmPassword)
+        {
+            ViewData["ErrorMessage"] = "Passwords do not match.";
+            return View(user);
+        }
+
+        // Check email uniqueness
+        if (!await _userDAL.IsEmailUniqueAsync(user.Email))
+        {
+            ViewData["ErrorMessage"] = "This email is already in use.";
+            return View(user);
+        }
+
+        // Hash the password
+        user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+
+        // Create the user in the database
+        await _userDAL.CreateUserAsync(user);
+
+        // Set success message
+        TempData["Success"] = "User created successfully.";
+        return RedirectToAction("AdminUserManagement");
+    }
+    catch (Exception ex)
+    {
+        ViewData["ErrorMessage"] = "An error occurred during user creation. Please try again.";
+        return View(user);
+    }
+}
+
 
 
         [HttpGet]
@@ -596,76 +769,164 @@ namespace test.Controllers
         }
 
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> EditUser(int id, User updatedUser, string confirmPassword)
+//         [HttpPost]
+//         [ValidateAntiForgeryToken]
+//         [Authorize(Roles = "Admin")]
+//         public async Task<IActionResult> EditUser(int id, User updatedUser, string confirmPassword)
+//         {
+//             try
+//             {
+//                 if (id != updatedUser.Id)
+//                 {
+//                     return BadRequest();
+//                 }
+
+// <<<<<<< Diana2.0
+//             if (ModelState.IsValid)
+//             {
+//                 var user = await _userDAL.GetUserByIdAsync(id);
+//                 if (user == null)
+// =======
+//                 if (!ModelState.IsValid)
+//                 {
+//                     var errors = ModelState.Values
+//                         .SelectMany(v => v.Errors)
+//                         .Select(e => e.ErrorMessage);
+//                     ViewData["ErrorMessage"] = string.Join(" ", errors);
+//                     return View(updatedUser);
+//                 }
+
+//                 var existingUser = await _userDAL.GetUserByIdAsync(id);
+//                 if (existingUser == null)
+// >>>>>>> main
+//                 {
+//                     return NotFound();
+//                 }
+
+//                 // Validate email uniqueness if it's being updated
+//                 if (existingUser.Email != updatedUser.Email && !await _userDAL.IsEmailUniqueAsync(updatedUser.Email))
+//                 {
+//                     ViewData["ErrorMessage"] = "This email is already in use.";
+//                     return View(updatedUser);
+//                 }
+
+//                 // Update username and email
+//                 existingUser.Username = updatedUser.Username;
+//                 existingUser.Email = updatedUser.Email;
+
+//                 // Password validation and update
+//                 if (!string.IsNullOrWhiteSpace(updatedUser.Password))
+//                 {
+//                     if (updatedUser.Password != confirmPassword)
+//                     {
+//                         ViewData["ErrorMessage"] = "Passwords do not match.";
+//                         return View(updatedUser);
+//                     }
+
+//                     var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
+//                     if (!passwordRegex.IsMatch(updatedUser.Password))
+//                     {
+//                         ViewData["ErrorMessage"] =
+//                             "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+//                         return View(updatedUser);
+//                     }
+
+//                     existingUser.Password = BCrypt.Net.BCrypt.HashPassword(updatedUser.Password);
+//                 }
+
+// <<<<<<< Diana2.0
+//                 await _userDAL.UpdateUserAsync(user);
+// =======
+//                 // Update the user in the database
+//                 await _userDAL.UpdateUserAsync(existingUser);
+
+//                 TempData["Success"] = "User updated successfully.";
+// >>>>>>> main
+//                 return RedirectToAction("AdminUserManagement");
+//             }
+//             catch (Exception ex)
+//             {
+//                 ViewData["ErrorMessage"] = "An error occurred while updating the user. Please try again.";
+//                 return View(updatedUser);
+//             }
+//         }
+  
+  [HttpPost]
+[ValidateAntiForgeryToken]
+[Authorize(Roles = "Admin")]
+public async Task<IActionResult> EditUser(int id, User updatedUser, string confirmPassword)
+{
+    try
+    {
+        if (id != updatedUser.Id)
         {
-            try
+            return BadRequest();
+        }
+
+        // Validate model state
+        if (!ModelState.IsValid)
+        {
+            var errors = ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage);
+            ViewData["ErrorMessage"] = string.Join(" ", errors);
+            return View(updatedUser);
+        }
+
+        // Retrieve existing user from the database
+        var existingUser = await _userDAL.GetUserByIdAsync(id);
+        if (existingUser == null)
+        {
+            return NotFound();
+        }
+
+        // Validate email uniqueness if it's being updated
+        if (existingUser.Email != updatedUser.Email && !await _userDAL.IsEmailUniqueAsync(updatedUser.Email))
+        {
+            ViewData["ErrorMessage"] = "This email is already in use.";
+            return View(updatedUser);
+        }
+
+        // Update username and email
+        existingUser.Username = updatedUser.Username;
+        existingUser.Email = updatedUser.Email;
+
+        // Password validation and update
+        if (!string.IsNullOrWhiteSpace(updatedUser.Password))
+        {
+            if (updatedUser.Password != confirmPassword)
             {
-                if (id != updatedUser.Id)
-                {
-                    return BadRequest();
-                }
-
-                if (!ModelState.IsValid)
-                {
-                    var errors = ModelState.Values
-                        .SelectMany(v => v.Errors)
-                        .Select(e => e.ErrorMessage);
-                    ViewData["ErrorMessage"] = string.Join(" ", errors);
-                    return View(updatedUser);
-                }
-
-                var existingUser = await _userDAL.GetUserByIdAsync(id);
-                if (existingUser == null)
-                {
-                    return NotFound();
-                }
-
-                // Validate email uniqueness if it's being updated
-                if (existingUser.Email != updatedUser.Email && !await _userDAL.IsEmailUniqueAsync(updatedUser.Email))
-                {
-                    ViewData["ErrorMessage"] = "This email is already in use.";
-                    return View(updatedUser);
-                }
-
-                // Update username and email
-                existingUser.Username = updatedUser.Username;
-                existingUser.Email = updatedUser.Email;
-
-                // Password validation and update
-                if (!string.IsNullOrWhiteSpace(updatedUser.Password))
-                {
-                    if (updatedUser.Password != confirmPassword)
-                    {
-                        ViewData["ErrorMessage"] = "Passwords do not match.";
-                        return View(updatedUser);
-                    }
-
-                    var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
-                    if (!passwordRegex.IsMatch(updatedUser.Password))
-                    {
-                        ViewData["ErrorMessage"] =
-                            "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
-                        return View(updatedUser);
-                    }
-
-                    existingUser.Password = BCrypt.Net.BCrypt.HashPassword(updatedUser.Password);
-                }
-
-                // Update the user in the database
-                await _userDAL.UpdateUserAsync(existingUser);
-
-                TempData["Success"] = "User updated successfully.";
-                return RedirectToAction("AdminUserManagement");
-            }
-            catch (Exception ex)
-            {
-                ViewData["ErrorMessage"] = "An error occurred while updating the user. Please try again.";
+                ViewData["ErrorMessage"] = "Passwords do not match.";
                 return View(updatedUser);
             }
+
+            var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
+            if (!passwordRegex.IsMatch(updatedUser.Password))
+            {
+                ViewData["ErrorMessage"] =
+                    "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+                return View(updatedUser);
+            }
+
+            // Hash and update the password
+            existingUser.Password = BCrypt.Net.BCrypt.HashPassword(updatedUser.Password);
         }
+
+        // Update the user in the database
+        await _userDAL.UpdateUserAsync(existingUser);
+
+        // Success message and redirection
+        TempData["Success"] = "User updated successfully.";
+        return RedirectToAction("AdminUserManagement");
+    }
+    catch (Exception ex)
+    {
+        // Handle unexpected errors
+        ViewData["ErrorMessage"] = "An error occurred while updating the user. Please try again.";
+        return View(updatedUser);
+    }
+}
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -680,7 +941,6 @@ namespace test.Controllers
             return NotFound();
         }
 
-        // GET: Account/AccessDenied
         [HttpGet]
         public IActionResult AccessDenied()
         {

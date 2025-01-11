@@ -25,23 +25,29 @@ namespace test.Data
                 var now = DateTime.UtcNow;
                 var activeDiscount = book.Discounts
                     .FirstOrDefault(d => d.IsActive && 
-                                       d.StartDate <= now && 
-                                       d.EndDate >= now);
+                                         d.StartDate <= now && 
+                                         d.EndDate >= now);
 
-                if (activeDiscount != null)
+                if (cartItem.IsBorrow)
                 {
-                    var basePrice = cartItem.IsBorrow ? book.BorrowPrice : book.PurchasePrice;
-                    if (basePrice.HasValue)
-                    {
-                        cartItem.FinalPrice = basePrice.Value * (1 - activeDiscount.DiscountAmount / 100);
-                        cartItem.DiscountId = activeDiscount.Id;
-                    }
+                    if (!book.BorrowPrice.HasValue)
+                        throw new InvalidOperationException("Book does not have a borrow price set");
+
+                    cartItem.FinalPrice = activeDiscount != null
+                        ? book.BorrowPrice.Value * (1 - activeDiscount.DiscountAmount / 100)
+                        : book.BorrowPrice.Value;
                 }
                 else
                 {
-                    cartItem.FinalPrice = cartItem.IsBorrow ? book.BorrowPrice : book.PurchasePrice;
-                    cartItem.DiscountId = null;
+                    if (!book.PurchasePrice.HasValue)
+                        throw new InvalidOperationException("Book does not have a purchase price set");
+
+                    cartItem.FinalPrice = activeDiscount != null
+                        ? book.PurchasePrice.Value * (1 - activeDiscount.DiscountAmount / 100)
+                        : book.PurchasePrice.Value;
                 }
+
+                cartItem.DiscountId = activeDiscount?.Id;
 
                 // Ensure borrow items have quantity of 1
                 if (cartItem.IsBorrow)
@@ -59,99 +65,110 @@ namespace test.Data
             }
         }
 
-        public async Task<CartItemModel> AddItemAsync(CartItemModel item)
+
+       public async Task<CartItemModel> AddItemAsync(CartItemModel item)
+{
+    try
+    {
+        // Validate book exists
+        var book = await _context.Books
+            .Include(b => b.Discounts)
+            .FirstOrDefaultAsync(b => b.Id == item.BookId);
+
+        if (book == null)
+            throw new KeyNotFoundException($"Book with ID {item.BookId} not found");
+
+        // Validate borrowing rules
+        if (item.IsBorrow)
         {
-            try
-            {
-                // Validate book exists
-                var book = await _context.Books
-                    .Include(b => b.Discounts)
-                    .FirstOrDefaultAsync(b => b.Id == item.BookId);
+            if (book.IsBuyOnly)
+                throw new InvalidOperationException("This book is only available for purchase");
 
-                if (book == null)
-                    throw new KeyNotFoundException($"Book with ID {item.BookId} not found");
+            // Check if user already has this book borrowed
+            var hasBookBorrowed = await _context.Borrows
+                .AnyAsync(b => b.UserId == item.ShoppingCart.UserId && 
+                             b.BookId == item.BookId && 
+                             !b.IsReturned);
 
-                // Validate borrowing rules
-                if (item.IsBorrow)
-                {
-                    if (book.IsBuyOnly)
-                        throw new InvalidOperationException("This book is only available for purchase");
+            if (hasBookBorrowed)
+                throw new InvalidOperationException("You already have this book borrowed");
 
-                    // Check if user already has this book borrowed
-                    var hasBookBorrowed = await _context.Borrows
-                        .AnyAsync(b => b.UserId == item.ShoppingCart.UserId && 
-                                     b.BookId == item.BookId && 
-                                     !b.IsReturned);
+            // Check if the book is already in cart for borrowing
+            var existingCartItem = await _context.CartItems
+                .FirstOrDefaultAsync(ci => ci.ShoppingCart.UserId == item.ShoppingCart.UserId && 
+                                         ci.BookId == item.BookId && 
+                                         ci.IsBorrow);
 
-                    if (hasBookBorrowed)
-                        throw new InvalidOperationException("You already have this book borrowed");
+            if (existingCartItem != null)
+                throw new InvalidOperationException("This book is already in your cart for borrowing");
 
-                    // Check if the book is already in cart for borrowing
-                    var existingCartItem = await _context.CartItems
-                        .FirstOrDefaultAsync(ci => ci.ShoppingCart.UserId == item.ShoppingCart.UserId && 
-                                                 ci.BookId == item.BookId && 
-                                                 ci.IsBorrow);
+            // Check if user has reached borrow limit (3 different books)
+            var distinctBorrowedBooks = await _context.Borrows
+                .Where(b => b.UserId == item.ShoppingCart.UserId && !b.IsReturned)
+                .Select(b => b.BookId)
+                .Distinct()
+                .CountAsync();
 
-                    if (existingCartItem != null)
-                        throw new InvalidOperationException("This book is already in your cart for borrowing");
+            var distinctBorrowsInCart = await _context.CartItems
+                .Where(ci => ci.ShoppingCart.UserId == item.ShoppingCart.UserId && 
+                           ci.IsBorrow && 
+                           ci.BookId != item.BookId)
+                .Select(ci => ci.BookId)
+                .Distinct()
+                .CountAsync();
 
-                    // Check if user has reached borrow limit (3 different books)
-                    var distinctBorrowedBooks = await _context.Borrows
-                        .Where(b => b.UserId == item.ShoppingCart.UserId && !b.IsReturned)
-                        .Select(b => b.BookId)
-                        .Distinct()
-                        .CountAsync();
+            if (distinctBorrowedBooks + distinctBorrowsInCart >= 3)
+                throw new InvalidOperationException("You can only borrow up to 3 different books at a time");
 
-                    var distinctBorrowsInCart = await _context.CartItems
-                        .Where(ci => ci.ShoppingCart.UserId == item.ShoppingCart.UserId && 
-                                   ci.IsBorrow && 
-                                   ci.BookId != item.BookId)
-                        .Select(ci => ci.BookId)
-                        .Distinct()
-                        .CountAsync();
+            // Check if book has available copies
+            var activeBorrows = await _context.Borrows
+                .CountAsync(b => b.BookId == item.BookId && !b.IsReturned);
 
-                    if (distinctBorrowedBooks + distinctBorrowsInCart >= 3)
-                        throw new InvalidOperationException("You can only borrow up to 3 different books at a time");
+            if (activeBorrows >= book.TotalCopies)
+                throw new InvalidOperationException("No copies available for borrowing");
 
-                    // Check if book has available copies
-                    var activeBorrows = await _context.Borrows
-                        .CountAsync(b => b.BookId == item.BookId && !b.IsReturned);
-
-                    if (activeBorrows >= book.TotalCopies)
-                        throw new InvalidOperationException("No copies available for borrowing");
-
-                    // Force quantity to 1 for borrow items
-                    item.Quantity = 1;
-                }
-
-                // Calculate final price with any active discounts
-                var now = DateTime.UtcNow;
-                var activeDiscount = book.Discounts
-                    .FirstOrDefault(d => d.IsActive && 
-                                       d.StartDate <= now && 
-                                       d.EndDate >= now);
-
-                var basePrice = item.IsBorrow ? book.BorrowPrice : book.PurchasePrice;
-                if (activeDiscount != null && basePrice.HasValue)
-                {
-                    item.DiscountId = activeDiscount.Id;
-                    item.FinalPrice = basePrice.Value * (1 - activeDiscount.DiscountAmount / 100);
-                }
-                else
-                {
-                    item.FinalPrice = basePrice;
-                }
-
-                await _context.CartItems.AddAsync(item);
-                await _context.SaveChangesAsync();
-                return item;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error in AddItemAsync: {ex.Message}");
-                throw;
-            }
+            // Force quantity to 1 for borrow items
+            item.Quantity = 1;
         }
+
+        // Calculate final price with any active discounts
+        var now = DateTime.UtcNow;
+        var activeDiscount = book.Discounts
+            .FirstOrDefault(d => d.IsActive && 
+                               d.StartDate <= now && 
+                               d.EndDate >= now);
+
+        if (item.IsBorrow)
+        {
+            if (!book.BorrowPrice.HasValue)
+                throw new InvalidOperationException("Book does not have a borrow price set");
+
+            item.FinalPrice = activeDiscount != null
+                ? book.BorrowPrice.Value * (1 - activeDiscount.DiscountAmount / 100)
+                : book.BorrowPrice.Value;
+        }
+        else
+        {
+            if (!book.PurchasePrice.HasValue)
+                throw new InvalidOperationException("Book does not have a purchase price set");
+
+            item.FinalPrice = activeDiscount != null
+                ? book.PurchasePrice.Value * (1 - activeDiscount.DiscountAmount / 100)
+                : book.PurchasePrice.Value;
+        }
+
+        item.DiscountId = activeDiscount?.Id;
+
+        await _context.CartItems.AddAsync(item);
+        await _context.SaveChangesAsync();
+        return item;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error in AddItemAsync: {ex.Message}");
+        throw;
+    }
+}
 
         public async Task<CartItemModel> GetByIdAsync(int id)
         {
