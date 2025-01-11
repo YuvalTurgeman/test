@@ -89,9 +89,9 @@ namespace test.Controllers
         }
 
         //POST: Account/Register
-            [HttpPost]
-        [ValidateAntiForgeryToken] 
-            public async Task<IActionResult> Register(User user, string confirmPassword)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Register(User user, string confirmPassword)
         {
             try
             {
@@ -114,7 +114,8 @@ namespace test.Controllers
                 var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
                 if (!passwordRegex.IsMatch(user.Password))
                 {
-                    ViewData["ErrorMessage"] = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+                    ViewData["ErrorMessage"] =
+                        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
                     return View(user);
                 }
 
@@ -135,7 +136,7 @@ namespace test.Controllers
                 user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
 
                 user.Permission = test.Enums.UserPermission.Customer;
-                
+
                 var createdUser = await _userDAL.CreateUserAsync(user);
 
 
@@ -256,33 +257,29 @@ namespace test.Controllers
             TempData["Success"] = "Email updated successfully.";
             return RedirectToAction("ShowUser", new { id });
         }
-        
+
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        [ValidateAntiForgeryToken] //todo: implement strong password here
         public async Task<IActionResult> EditPassword(int id, string newPassword, string confirmPassword)
         {
-            Console.WriteLine("1");
             var userId = HttpContext.Session.GetInt32("UserId");
             if (!userId.HasValue || userId.Value != id)
             {
                 return RedirectToAction("Login");
             }
-
-            Console.WriteLine("2");
+            
             var user = await _userDAL.GetUserByIdAsync(id);
             if (user == null)
             {
                 return NotFound();
             }
-
-            Console.WriteLine("3");
+            
             // Generate and save the reset token
             var token = Guid.NewGuid().ToString();
             user.ResetToken = token;
             user.ResetTokenExpires = DateTime.UtcNow.AddHours(1);
             await _userDAL.UpdateUserAsync(user);
-            Console.WriteLine("5");
             // Generate reset link
             var resetLink = Url.Action(
                 "ResetPassword",
@@ -383,11 +380,12 @@ namespace test.Controllers
 
             return View();
         }
-        
-        
+
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ResetPassword(string token, string email, string newPassword, string confirmPassword, bool isChangePassword = false)
+        public async Task<IActionResult> ResetPassword(string token, string email, string newPassword,
+            string confirmPassword, bool isChangePassword = false)
         {
             // Retrieve the user based on the provided email
             var user = await _userDAL.GetUserByEmailAsync(email);
@@ -428,7 +426,7 @@ namespace test.Controllers
             TempData["Success"] = isChangePassword
                 ? "Your password has been successfully changed."
                 : "Your password has been successfully reset.";
-            
+
             if (isChangePassword)
             {
                 return RedirectToAction("UserHomePage", "Books");
@@ -438,7 +436,6 @@ namespace test.Controllers
                 return RedirectToAction("Login");
             }
         }
-
 
 
         // Admin Actions
@@ -460,23 +457,61 @@ namespace test.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> AdminCreateUser(User user)
+        public async Task<IActionResult> AdminCreateUser(User user, string confirmPassword)
         {
-            if (ModelState.IsValid)
+            try
             {
-                if (!await _userDAL.IsEmailUniqueAsync(user.Email))
+                if (!ModelState.IsValid)
                 {
-                    ModelState.AddModelError("Email", "This email is already in use.");
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage);
+                    ViewData["ErrorMessage"] = string.Join(" ", errors);
                     return View(user);
                 }
 
+                if (string.IsNullOrWhiteSpace(user.Username))
+                {
+                    ViewData["ErrorMessage"] = "Username is required.";
+                    return View(user);
+                }
+
+                // Password validation
+                var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
+                if (!passwordRegex.IsMatch(user.Password))
+                {
+                    ViewData["ErrorMessage"] =
+                        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+                    return View(user);
+                }
+
+                if (user.Password != confirmPassword)
+                {
+                    ViewData["ErrorMessage"] = "Passwords do not match.";
+                    return View(user);
+                }
+
+                if (!await _userDAL.IsEmailUniqueAsync(user.Email))
+                {
+                    ViewData["ErrorMessage"] = "This email is already in use.";
+                    return View(user);
+                }
+
+                // Hash password and assign role
                 user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
+
                 await _userDAL.CreateUserAsync(user);
+
+                TempData["Success"] = "User created successfully.";
                 return RedirectToAction("AdminUserManagement");
             }
-
-            return View(user);
+            catch (Exception ex)
+            {
+                ViewData["ErrorMessage"] = "An error occurred during user creation. Please try again.";
+                return View(user);
+            }
         }
+
 
         [HttpGet]
         [Authorize(Roles = "Admin")]
@@ -490,34 +525,77 @@ namespace test.Controllers
 
             return View(user);
         }
+        
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> EditUser(int id, User updatedUser)
+        public async Task<IActionResult> EditUser(int id, User updatedUser, string confirmPassword)
         {
-            if (id != updatedUser.Id)
+            try
             {
-                return BadRequest();
-            }
+                if (id != updatedUser.Id)
+                {
+                    return BadRequest();
+                }
 
-            if (ModelState.IsValid)
-            {
-                var user = await _userDAL.GetUserByIdAsync(id);
-                if (user == null)
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage);
+                    ViewData["ErrorMessage"] = string.Join(" ", errors);
+                    return View(updatedUser);
+                }
+
+                var existingUser = await _userDAL.GetUserByIdAsync(id);
+                if (existingUser == null)
                 {
                     return NotFound();
                 }
 
-                user.Username = updatedUser.Username;
-                user.Email = updatedUser.Email;
-                user.Permission = updatedUser.Permission;
+                // Validate email uniqueness if it's being updated
+                if (existingUser.Email != updatedUser.Email && !await _userDAL.IsEmailUniqueAsync(updatedUser.Email))
+                {
+                    ViewData["ErrorMessage"] = "This email is already in use.";
+                    return View(updatedUser);
+                }
 
-                await _userDAL.UpdateUserAsync(user);
+                // Update username and email
+                existingUser.Username = updatedUser.Username;
+                existingUser.Email = updatedUser.Email;
+
+                // Password validation and update
+                if (!string.IsNullOrWhiteSpace(updatedUser.Password))
+                {
+                    if (updatedUser.Password != confirmPassword)
+                    {
+                        ViewData["ErrorMessage"] = "Passwords do not match.";
+                        return View(updatedUser);
+                    }
+
+                    var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
+                    if (!passwordRegex.IsMatch(updatedUser.Password))
+                    {
+                        ViewData["ErrorMessage"] =
+                            "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+                        return View(updatedUser);
+                    }
+
+                    existingUser.Password = BCrypt.Net.BCrypt.HashPassword(updatedUser.Password);
+                }
+
+                // Update the user in the database
+                await _userDAL.UpdateUserAsync(existingUser);
+
+                TempData["Success"] = "User updated successfully.";
                 return RedirectToAction("AdminUserManagement");
             }
-
-            return View(updatedUser);
+            catch (Exception ex)
+            {
+                ViewData["ErrorMessage"] = "An error occurred while updating the user. Please try again.";
+                return View(updatedUser);
+            }
         }
 
         [HttpPost]
