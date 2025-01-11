@@ -77,17 +77,17 @@ public async Task<IActionResult> BuyNow(int bookId)
             return RedirectToAction("UserHomePage", "Books");
         }
 
-        // Get the effective price (including any active discount)
-        var effectivePrice = await _bookDal.GetEffectivePurchasePriceAsync(bookId) ?? 0m;
-
-        var purchaseInfo = new TempPurchaseInfo
-        {
-            BookId = bookId,
-            UserId = userId,
-            Quantity = 1,
-            IsBuyNow = true,
-            Price = effectivePrice  // Use the effective price instead of original price
-        };
+        
+                var finalPrice = await _bookDAL.GetEffectivePurchasePriceAsync(bookId); 
+                    
+                var purchaseInfo = new TempPurchaseInfo
+                {
+                    BookId = bookId,
+                    UserId = userId,
+                    Quantity = 1,
+                    IsBuyNow = true,
+                    Price = finalPrice?? 0m
+                };
 
         TempData[TempPurchaseKey] = JsonSerializer.Serialize(purchaseInfo);
 
@@ -100,13 +100,19 @@ public async Task<IActionResult> BuyNow(int bookId)
                     Currency = "usd",
                     ProductData = new SessionLineItemPriceDataProductDataOptions
                     {
-                        Name = book.Title
-                    },
-                    UnitAmount = Convert.ToInt64(effectivePrice * 100)  // Use the effective price
-                },
-                Quantity = 1
-            }
-        };
+                        PriceData = new SessionLineItemPriceDataOptions
+                        {
+                            Currency = "usd",
+                            ProductData = new SessionLineItemPriceDataProductDataOptions
+                            {
+                                Name = book.Title
+                            },
+                            UnitAmount = Convert.ToInt64(finalPrice * 100)
+                        },
+                        Quantity = 1
+                    }
+                };
+
 
         var sessionUrl = await _paymentService.CreateCheckoutSessionAsync(
             lineItems,
