@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using test.Models;
 using test.Data;
 using test.Enums;
+using test.Helpers;
 
 namespace test.Data
 {
@@ -102,8 +103,11 @@ namespace test.Data
             if (user == null)
                 return false;
 
-            return BCrypt.Net.BCrypt.Verify(password, user.Password);
+            // 🔁 Replace BCrypt with SHA-256 hash + salt
+            string hashedInput = HashHelper.HashPassword(password, user.Salt);
+            return user.Password == hashedInput;
         }
+
 
         // Validation methods
         public async Task<bool> IsEmailUniqueAsync(string email)
@@ -142,10 +146,17 @@ namespace test.Data
             if (user == null)
                 return false;
 
-            user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            // 🔁 Replace BCrypt with SHA-256 + generate new salt
+            string newSalt = HashHelper.GenerateSalt();
+            string hashedPassword = HashHelper.HashPassword(newPassword, newSalt);
+
+            user.Salt = newSalt;
+            user.Password = hashedPassword;
+
             await _context.SaveChangesAsync();
             return true;
         }
+
         
         // Reset Password Tokens
         public async Task SaveResetTokenAsync(string email, string token, DateTime expiration)
