@@ -30,11 +30,7 @@ namespace test.Data
                 .Property(u => u.Permission)
                 .HasConversion<string>()
                 .IsRequired();
-            
-            modelBuilder.Entity<User>()
-                .Property(u => u.Salt)
-                .HasColumnName("salt");
-            
+
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Purchases)
                 .WithOne(p => p.User)
@@ -54,7 +50,7 @@ namespace test.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<User>()
-                .HasMany(u => u.Reviews) 
+                .HasMany(u => u.Reviews) // Added
                 .WithOne(r => r.User)
                 .HasForeignKey(r => r.UserId)
                 .OnDelete(DeleteBehavior.Cascade);

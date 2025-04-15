@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 using test.Data;
 using test.Models;
 using test.Enums;
-using test.Helpers;
 using test.Services;
 using test.ViewModels;
 
@@ -37,7 +36,7 @@ namespace test.Controllers
         public async Task<IActionResult> Login(string email, string password, string returnUrl = null)
         {
             var user = await _userDAL.GetUserByEmailAsync(email);
-            if (user == null || !HashHelper.VerifyPassword(password, user.Password, user.Salt))
+            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
             {
                 ViewData["LoginError"] = "Invalid email or password.";
                 return View();
@@ -104,7 +103,8 @@ namespace test.Controllers
                 var passwordRegex = new Regex(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[#$^+=!*()@%&]).{8,}$");
                 if (!passwordRegex.IsMatch(user.Password))
                 {
-                    ViewData["ErrorMessage"] = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
+                    ViewData["ErrorMessage"] = 
+                        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (#$^+=!*()@%&).";
                     return View(user);
                 }
 
@@ -120,17 +120,8 @@ namespace test.Controllers
                     return View(user);
                 }
 
-                // Hashing + Salt logic
-                string salt = HashHelper.GenerateSalt();
-                string hashedPassword = HashHelper.HashPassword(user.Password, salt);
-
-                user.Password = hashedPassword;
-                user.Salt = salt;
+                user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
                 user.Permission = Enums.UserPermission.Customer;
-
-                Console.WriteLine($"[Controller] Salt before save: {salt}");
-                Console.WriteLine($"[Controller] Password before save: {hashedPassword}");
-
                 var createdUser = await _userDAL.CreateUserAsync(user);
 
                 var claims = new List<Claim>
@@ -159,11 +150,11 @@ namespace test.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] Registration failed: {ex.Message}");
                 ViewData["ErrorMessage"] = "An error occurred during registration. Please try again.";
                 return View(user);
             }
         }
+
         public async Task<IActionResult> ShowUser(int? id)
         {
             var userId = HttpContext.Session.GetInt32("UserId");
@@ -394,10 +385,7 @@ namespace test.Controllers
                 return View();
             }
 
-            // Generate new salt and hash the password
-            string salt = HashHelper.GenerateSalt();
-            user.Salt = salt;
-            user.Password = HashHelper.HashPassword(newPassword, salt);
+            user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
             user.ResetToken = null;
             user.ResetTokenExpires = null;
             await _userDAL.UpdateUserAsync(user);
@@ -475,9 +463,7 @@ namespace test.Controllers
                     return View(user);
                 }
 
-                string salt = HashHelper.GenerateSalt();
-                user.Salt = salt;
-                user.Password = HashHelper.HashPassword(user.Password, salt);
+                user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
                 await _userDAL.CreateUserAsync(user);
 
                 TempData["Success"] = "User created successfully.";
@@ -554,9 +540,7 @@ namespace test.Controllers
                         return View(updatedUser);
                     }
 
-                    string salt = HashHelper.GenerateSalt();
-                    existingUser.Salt = salt;
-                    existingUser.Password = HashHelper.HashPassword(updatedUser.Password, salt);
+                    existingUser.Password = BCrypt.Net.BCrypt.HashPassword(updatedUser.Password);
                 }
 
                 await _userDAL.UpdateUserAsync(existingUser);
